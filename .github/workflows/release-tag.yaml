@@ -82,14 +82,14 @@ jobs:
       - name: Push crd-chart OCI artifact
         run: |
           helm push ./build/snowplow-crd-${{ steps.versions.outputs.chart }}.tgz \
-            oci://${{ env.REGISTRY }}/${{ env.ORG }}
+            oci://${{ env.REGISTRY }}/${{ env.ORG }}/charts
 
       - name: Push chart OCI artifact
         run: |
           helm push ./build/snowplow-${{ steps.versions.outputs.chart }}.tgz \
-            oci://${{ env.REGISTRY }}/${{ env.ORG }}
+            oci://${{ env.REGISTRY }}/${{ env.ORG }}/charts
 
       - name: Show resulting OCI refs
         run: |
-          echo "snowplow chart:     oci://${{ env.REGISTRY }}/${{ env.ORG }}/snowplow:${{ steps.versions.outputs.chart }}"
-          echo "snowplow-crd chart: oci://${{ env.REGISTRY }}/${{ env.ORG }}/snowplow-crd:${{ steps.versions.outputs.chart }}"
+          echo "snowplow chart:     oci://${{ env.REGISTRY }}/${{ env.ORG }}/charts/snowplow:${{ steps.versions.outputs.chart }}"
+          echo "snowplow-crd chart: oci://${{ env.REGISTRY }}/${{ env.ORG }}/charts/snowplow-crd:${{ steps.versions.outputs.chart }}"
