@@ -18,9 +18,12 @@ replicaCount: 1
 image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
-  # appVersion from Chart.yaml. Override here to pin a specific snowplow
-  # app build independent of the chart version.
-  tag: ""
+  # Pinned explicitly so the image build is decoupled from chart
+  # versioning. The chart's Chart.yaml appVersion placeholder is
+  # substituted by CI with the chart git tag, which is NOT the same
+  # as the snowplow app version. Always bump this in a values commit
+  # when you want a new snowplow app build to roll out.
+  tag: "0.25.172"
 
 imagePullSecrets: []
 nameOverride: ""
