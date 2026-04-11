@@ -1,0 +1,95 @@
+name: release-tag
+
+# Builds both the snowplow chart and its snowplow-crd dependency as OCI
+# artifacts and pushes them to ghcr.io/braghettos. Triggered on semver
+# tag pushes (e.g. 0.20.5). The tag value is used as BOTH the chart
+# version (for chart/Chart.yaml and crd-chart/Chart.yaml) and the
+# snowplow app version (appVersion in chart/Chart.yaml) — tag and push
+# a new semver each time you want a new chart release.
+
+on:
+  push:
+    tags: ["[0-9]+.[0-9]+.[0-9]+"]
+
+env:
+  REGISTRY: ghcr.io
+  ORG: ${{ github.repository_owner }}
+
+jobs:
+  package:
+    name: Package and push OCI chart
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.1.0
+
+      - name: Resolve versions from tag
+        id: versions
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          echo "chart=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "app=${TAG}"   >> "$GITHUB_OUTPUT"
+          echo "Tag ${TAG} -> chart=${TAG} app=${TAG}"
+
+      - name: Substitute CHART_VERSION and APP_VERSION placeholders
+        run: |
+          sed -i "s/CHART_VERSION/${{ steps.versions.outputs.chart }}/g" chart/Chart.yaml
+          sed -i "s/APP_VERSION/${{ steps.versions.outputs.app }}/g"     chart/Chart.yaml
+          sed -i "s/CHART_VERSION/${{ steps.versions.outputs.chart }}/g" crd-chart/Chart.yaml
+          echo "--- chart/Chart.yaml ---"
+          cat chart/Chart.yaml
+          echo "--- crd-chart/Chart.yaml ---"
+          cat crd-chart/Chart.yaml
+
+      - name: Helm lint (crd-chart)
+        run: helm lint ./crd-chart
+
+      - name: Package crd-chart
+        run: |
+          helm package ./crd-chart --destination ./build
+          ls -la ./build
+
+      - name: Build chart dependencies from local crd-chart
+        run: |
+          # The main chart depends on snowplow-crd via file://../crd-chart
+          # helm dependency build resolves it by picking up the local .tgz
+          # produced above.
+          helm dependency build ./chart
+          ls -la ./chart/charts
+
+      - name: Helm lint (chart)
+        run: helm lint ./chart
+
+      - name: Package chart
+        run: |
+          helm package ./chart --destination ./build
+          ls -la ./build
+
+      - name: Log in to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} \
+            --username "${{ github.actor }}" \
+            --password-stdin
+
+      - name: Push crd-chart OCI artifact
+        run: |
+          helm push ./build/snowplow-crd-${{ steps.versions.outputs.chart }}.tgz \
+            oci://${{ env.REGISTRY }}/${{ env.ORG }}
+
+      - name: Push chart OCI artifact
+        run: |
+          helm push ./build/snowplow-${{ steps.versions.outputs.chart }}.tgz \
+            oci://${{ env.REGISTRY }}/${{ env.ORG }}
+
+      - name: Show resulting OCI refs
+        run: |
+          echo "snowplow chart:     oci://${{ env.REGISTRY }}/${{ env.ORG }}/snowplow:${{ steps.versions.outputs.chart }}"
+          echo "snowplow-crd chart: oci://${{ env.REGISTRY }}/${{ env.ORG }}/snowplow-crd:${{ steps.versions.outputs.chart }}"
