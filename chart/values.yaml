@@ -23,7 +23,7 @@ image:
   # substituted by CI with the chart git tag, which is NOT the same
   # as the snowplow app version. Always bump this in a values commit
   # when you want a new snowplow app build to roll out.
-  tag: "0.25.173"
+  tag: "0.25.174"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -68,13 +68,28 @@ resources:
     cpu: 2
     memory: 10Gi
 
+# Startup probe: k8s does not check liveness/readiness until startup
+# succeeds. At 49K compositions the informer warmup can take 5-10 min,
+# so we allow up to 360s (36 × 10s) before declaring the pod failed.
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  failureThreshold: 36
+  periodSeconds: 10
+
 livenessProbe:
   httpGet:
     path: /health
     port: http
+# /ready returns 503 until IsPreWarmComplete() is true, which is set
+# AFTER Phase 4b (RBAC warmup for all users) + Phase 5 (L1 warmup).
+# This ensures no traffic reaches the pod before the RBAC cache is
+# populated — the RBAC gate on L3 reads (api/resolve.go) depends on
+# a warm RBAC cache for correctness.
 readinessProbe:
   httpGet:
-    path: /health
+    path: /ready
     port: http
 
 autoscaling:
