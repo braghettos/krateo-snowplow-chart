@@ -29,7 +29,7 @@ image:
   # substituted by CI with the chart git tag, which is NOT the same
   # as the snowplow app version. Always bump this in a values commit
   # when you want a new snowplow app build to roll out.
-  tag: "0.25.176"
+  tag: "0.25.178"
 
 imagePullSecrets: []
 nameOverride: ""
