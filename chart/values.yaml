@@ -68,18 +68,18 @@ ingress:
 #   Redis:       406 MB (sidecar, separate container)
 #   Peak RSS:    ~4.5 GB total
 #
-# 8 Gi limit gives ~3.5 Gi headroom over 4.5 GB peak.
-# GOMEMLIMIT=6GiB triggers proactive GC well under the 8 Gi ceiling.
+# 12 Gi limit gives ~6 Gi headroom over 6 GB prewarm peak.
+# GOMEMLIMIT=10GiB triggers proactive GC well under the 12 Gi ceiling.
 # The chunked informer LIST (Limit=500) keeps startup transient under
-# 500 MB — the old 20 Gi limit was for the unchunked LIST that decoded
+# 500 MB — 8 Gi proved too tight -- pod OOMed 5x at 50K. 12 Gi accommodates the 6 GB prewarm peak plus concurrent request headroom. The old 20 Gi was for the unchunked LIST that decoded
 # 50K items in one pass (~15 GB spike).
 resources:
   limits:
     cpu: 4
-    memory: 8Gi
+    memory: 12Gi
   requests:
     cpu: 2
-    memory: 4Gi
+    memory: 6Gi
 
 # Startup probe: k8s does not check liveness/readiness until startup
 # succeeds. At 49K compositions the informer warmup can take 5-10 min,
@@ -179,7 +179,7 @@ env:
   # Go runtime: trigger proactive GC at 6 GiB so we stay under the
   # 8 Gi cgroup limit. Stress test peak was 3.9 GB at 1000 users;
   # 6 GiB leaves 2 GiB headroom for transient spikes.
-  GOMEMLIMIT: 6GiB
+  GOMEMLIMIT: 10GiB
   # Lower GOGC (default 100) trades ~1% CPU for tighter memory headroom.
   GOGC: "50"
   CACHE_ENABLED: "true"
