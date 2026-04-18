@@ -125,10 +125,21 @@ volumes:
     configMap:
       name: snowplow-cache-warmup
       defaultMode: 420
+  # Frontend config.json from the portal's frontend-config-vars ConfigMap.
+  # Used by WarmL1FromEntryPoints to discover INIT/ROUTES_LOADER entry
+  # points for targeted L1 warmup. Optional so pods start cleanly when
+  # the ConfigMap does not exist yet.
+  - name: frontend-config
+    configMap:
+      name: frontend-config-vars
+      optional: true
 
 volumeMounts:
   - name: cache-warmup-config
     mountPath: /etc/snowplow
+    readOnly: true
+  - name: frontend-config
+    mountPath: /etc/frontend-config
     readOnly: true
 
 # Extra envFrom entries appended to the default (chart-managed
