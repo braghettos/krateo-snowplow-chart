@@ -3,15 +3,13 @@
 # Diverges from upstream krateoplatformops/snowplow-chart in the ways
 # needed to run the cache-enabled fork at 50K-composition scale:
 #   - image points at ghcr.io/braghettos/snowplow
-#   - resources pre-sized for informer + redis + GC headroom
+#   - resources pre-sized for informer + in-process cache + GC headroom
 #   - env carries GOMEMLIMIT/GOGC for cgroup-aware GC
 #   - volumes mount the external snowplow-cache-warmup ConfigMap
-#     and the L1 disk emptyDir
 #   - envFrom picks up the external snowplow-api-override ConfigMap
 #     (managed by the portal blueprint) in addition to the chart's
 #     own snowplow ConfigMap
-#   - a redis initContainer runs as a sidecar so snowplow can talk
-#     to localhost:6379 without a separate release
+#   - Redis sidecar removed (v0.25.266+): cache is in-process MemCache
 
 replicaCount: 1
 
@@ -65,8 +63,8 @@ ingress:
 # Right-sized from stress test data (50K compositions × 1000 users):
 #   Peak heap:   3.9 GB (cold start with 1000 users)
 #   Steady heap: 3.3 GB
-#   Redis:       406 MB (sidecar, separate container)
-#   Peak RSS:    ~4.5 GB total
+#   In-process cache: ~2-3 GB (L1 resolved entries, replaces Redis)
+#   Peak RSS:    ~6 GB total
 #
 # 12 Gi limit gives ~6 Gi headroom over 6 GB prewarm peak.
 # GOMEMLIMIT=10GiB triggers proactive GC well under the 12 Gi ceiling.
@@ -150,31 +148,8 @@ extraEnvFrom:
       name: snowplow-api-override
       optional: true
 
-# Sidecar init container running redis for the snowplow cache.
-# `restartPolicy: Always` makes k8s keep it running alongside the
-# main container (k8s 1.28+ sidecar pattern).
-initContainers:
-  - name: redis
-    image: redis:8.6.2-alpine
-    imagePullPolicy: IfNotPresent
-    restartPolicy: Always
-    args: ["--save", "", "--appendonly", "no"]
-    ports:
-      - containerPort: 6379
-        protocol: TCP
-    readinessProbe:
-      exec:
-        command: [redis-cli, ping]
-      initialDelaySeconds: 2
-      periodSeconds: 3
-      timeoutSeconds: 1
-      successThreshold: 1
-      failureThreshold: 3
-    env:
-      - name: CACHE_ENABLED
-        value: "true"
-      - name: DEBUG
-        value: "false"
+# Redis sidecar removed — snowplow uses in-process MemCache (v0.25.266+).
+initContainers: []
 
 nodeSelector: {}
 tolerations: []
