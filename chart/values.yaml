@@ -66,18 +66,23 @@ ingress:
 #   In-process cache: ~2-3 GB (L1 resolved entries, replaces Redis)
 #   Peak RSS:    ~6 GB total
 #
-# 12 Gi limit gives ~6 Gi headroom over 6 GB prewarm peak.
-# GOMEMLIMIT=10GiB triggers proactive GC well under the 12 Gi ceiling.
-# The chunked informer LIST (Limit=500) keeps startup transient under
-# 500 MB — 8 Gi proved too tight -- pod OOMed 5x at 50K. 12 Gi accommodates the 6 GB prewarm peak plus concurrent request headroom. The old 20 Gi was for the unchunked LIST that decoded
-# 50K items in one pass (~15 GB spike).
+# Memory tuning history:
+#   - Original 20 Gi: unchunked informer LIST at 50K (~15 GB spike).
+#   - 12 Gi: with chunked LIST (Limit=500) + informer.SetTransform
+#     stripping managedFields/last-applied — peak RSS ~6 GB.
+#   - 8 Gi target (this revision): contingent on GOMEMLIMIT being set
+#     BELOW the container limit so the Go runtime backpressures via
+#     aggressive GC before Linux OOM-kills the pod. The earlier 8 Gi
+#     attempts OOMed because GOMEMLIMIT was set ≥ container limit and
+#     the runtime never saw memory pressure. Validate at 50K under
+#     Phase-6 load before treating this as the new baseline.
 resources:
   limits:
     cpu: 4
-    memory: 12Gi
+    memory: 8Gi
   requests:
     cpu: 2
-    memory: 6Gi
+    memory: 4Gi
 
 # Startup probe: k8s does not check liveness/readiness until startup
 # succeeds. At 49K compositions the informer warmup can take 5-10 min,
@@ -166,7 +171,11 @@ env:
   # Go runtime: trigger proactive GC at 6 GiB so we stay under the
   # 8 Gi cgroup limit. Stress test peak was 3.9 GB at 1000 users;
   # 6 GiB leaves 2 GiB headroom for transient spikes.
-  GOMEMLIMIT: 10GiB
+  # Must be BELOW the container memory limit (8 Gi) so the Go runtime
+  # backpressures via GC before Linux OOM-kills the pod. Setting this
+  # at or above the container limit is a misconfiguration that has
+  # caused OOM-kill incidents.
+  GOMEMLIMIT: 7GiB
   # Lower GOGC (default 100) trades ~1% CPU for tighter memory headroom.
   GOGC: "50"
   CACHE_ENABLED: "true"
