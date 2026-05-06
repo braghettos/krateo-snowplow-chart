@@ -57,6 +57,15 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+            {{- if .Values.probePort }}
+            # Q-PREWARM-R2 1.3 -- dedicated kubelet-probe listener.
+            # The snowplow binary opens this port only when PROBE_PORT
+            # is set in the ConfigMap (see configmap.yaml). Probes
+            # below reference this port by name (`probe`).
+            - name: probe
+              containerPort: {{ .Values.probePort }}
+              protocol: TCP
+            {{- end }}
           {{- with .Values.startupProbe }}
           startupProbe:
             {{- toYaml . | nindent 12 }}

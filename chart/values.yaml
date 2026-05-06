@@ -10,13 +10,18 @@
 #     (managed by the portal blueprint) in addition to the chart's
 #     own snowplow ConfigMap
 #   - Redis sidecar removed (v0.25.266+): cache is in-process MemCache
+#   - probes split onto a dedicated PROBE_PORT (Q-PREWARM-R2 §1.3,
+#     v0.25.293+): isolates /health and /ready from the main request
+#     mux so kubelet probes never starve under prewarm CPU pressure
 
 replicaCount: 1
 
-# At 49K compositions the readiness probe (/ready, gated on prewarm
-# completion) takes ~11 min to pass. Default 600s causes k8s to mark
-# the deployment condition as ProgressDeadlineExceeded (cosmetic —
-# rollout still completes, but helm reports a false error).
+# Q-PREWARM-R2 (v0.25.293+): /ready now flips on informer-sync only,
+# typically <= 30s after pod start regardless of L1 prewarm progress.
+# The 1200s window remains as a safety net for cold first-LIST at
+# 50K compositions (informer initial LIST/WATCH can still take ~5
+# minutes under heavy API server load); it is no longer the dominant
+# factor.
 progressDeadlineSeconds: 1200
 
 image:
@@ -27,6 +32,10 @@ image:
   # substituted by CI with the chart git tag, which is NOT the same
   # as the snowplow app version. Always bump this in a values commit
   # when you want a new snowplow app build to roll out.
+  #
+  # MUST be >= 0.25.293 for this chart revision -- earlier images do
+  # NOT honour PROBE_PORT and will silently leave port 8082 closed,
+  # turning every kubelet probe into a connection-refused -> restart.
   tag: "0.25.180"
 
 imagePullSecrets: []
@@ -49,6 +58,21 @@ service:
   type: LoadBalancer
   port: 8081
 
+# Q-PREWARM-R2 1.3 -- dedicated kubelet-probe port.
+#
+# When > 0 the snowplow binary opens a SECOND http.Server bound to
+# this port. That server has its own mux, its own goroutine, and
+# NO middleware (no otelhttp, no CORS, no recovery, no gzip). The
+# main :8081 server still serves /health and /ready as well, but
+# the kubelet's livenessProbe and readinessProbe are pointed at
+# this dedicated port so probes are NEVER blocked by request-side
+# pressure on the main accept loop or middleware chain.
+#
+# Set to 0 to disable the probe-only listener and fall back to
+# pre-R2 behaviour (kubelet hits :8081). Used for emergency
+# rollback without changing image tags.
+probePort: 8082
+
 ingress:
   enabled: false
   className: ""
@@ -60,7 +84,7 @@ ingress:
           pathType: ImplementationSpecific
   tls: []
 
-# Right-sized from stress test data (50K compositions × 1000 users):
+# Right-sized from stress test data (50K compositions x 1000 users):
 #   Peak heap:   3.9 GB (cold start with 1000 users)
 #   Steady heap: 3.3 GB
 #   In-process cache: ~2-3 GB (L1 resolved entries, replaces Redis)
@@ -69,11 +93,11 @@ ingress:
 # Memory tuning history:
 #   - Original 20 Gi: unchunked informer LIST at 50K (~15 GB spike).
 #   - 12 Gi: with chunked LIST (Limit=500) + informer.SetTransform
-#     stripping managedFields/last-applied — peak RSS ~6 GB.
+#     stripping managedFields/last-applied -- peak RSS ~6 GB.
 #   - 8 Gi target (this revision): contingent on GOMEMLIMIT being set
 #     BELOW the container limit so the Go runtime backpressures via
 #     aggressive GC before Linux OOM-kills the pod. The earlier 8 Gi
-#     attempts OOMed because GOMEMLIMIT was set ≥ container limit and
+#     attempts OOMed because GOMEMLIMIT was set >= container limit and
 #     the runtime never saw memory pressure. Validate at 50K under
 #     Phase-6 load before treating this as the new baseline.
 resources:
@@ -84,29 +108,61 @@ resources:
     cpu: 2
     memory: 4Gi
 
-# Startup probe: k8s does not check liveness/readiness until startup
-# succeeds. At 49K compositions the informer warmup can take 5-10 min,
-# so we allow up to 360s (36 × 10s) before declaring the pod failed.
+# Q-PREWARM-R2 (v0.25.293+) probe configuration.
+#
+# All three probes target the dedicated `probe` port (PROBE_PORT,
+# default 8082) instead of the main `http` port. The dedicated
+# server has 1s read/write timeouts, no middleware, and is on its
+# own goroutine -- so probes return in sub-millisecond steady state.
+#
+# The timeouts/thresholds below are EXPLICIT (not k8s defaults)
+# because the pre-R2 behaviour relied on k8s defaults
+# (timeoutSeconds: 1, failureThreshold: 3, periodSeconds: 10) which
+# left only a 30-second window before kubelet killed the pod. With
+# R2's probe isolation 1s is plenty for /health (it is a 5-byte
+# write), but we relax failureThreshold to 5 and timeoutSeconds to
+# 3 as defence-in-depth: even if the OS scheduler hiccups, a
+# transient miss should not restart the pod.
+
+# Startup probe: gives the binary up to 6 minutes to reach the
+# point where the dedicated probe server is listening. In practice
+# it binds within ~50ms of process start (before the slow
+# informer-sync work runs in a background goroutine), so this is
+# almost entirely headroom for image pull / kube-scheduler latency.
 startupProbe:
   httpGet:
     path: /health
-    port: http
+    port: probe
   failureThreshold: 36
   periodSeconds: 10
+  timeoutSeconds: 3
 
+# Liveness probe: liveness only checks that the binary is alive
+# (Q-PREWARM-R2.2 -- /health is now a pure 5-byte write with zero
+# kube-API touches). failureThreshold: 5 + periodSeconds: 10 +
+# timeoutSeconds: 3 gives a 50-second window before kubelet
+# decides to restart, vs the 30-second window of k8s defaults that
+# triggered the death-spiral.
 livenessProbe:
   httpGet:
     path: /health
-    port: http
-# /ready returns 503 until IsPreWarmComplete() is true, which is set
-# AFTER Phase 4b (RBAC warmup for all users) + Phase 5 (L1 warmup).
-# This ensures no traffic reaches the pod before the RBAC cache is
-# populated — the RBAC gate on L3 reads (api/resolve.go) depends on
-# a warm RBAC cache for correctness.
+    port: probe
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 5
+
+# Readiness probe: Q-PREWARM-R2.1 -- /ready now flips to 200 once
+# informers complete their initial LIST/WATCH sync (~10-30s at
+# 50K), independent of the multi-minute L1 prewarm loop. Pod
+# becomes Ready as soon as it can serve cold-L1 traffic; misses
+# fall through to the foreground singleflight resolve.
 readinessProbe:
   httpGet:
     path: /ready
-    port: http
+    port: probe
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
 
 autoscaling:
   enabled: false
@@ -153,7 +209,7 @@ extraEnvFrom:
       name: snowplow-api-override
       optional: true
 
-# Redis sidecar removed — snowplow uses in-process MemCache (v0.25.266+).
+# Redis sidecar removed -- snowplow uses in-process MemCache (v0.25.266+).
 initContainers: []
 
 nodeSelector: {}
@@ -162,7 +218,7 @@ affinity: {}
 
 # Env vars rendered into the chart's snowplow ConfigMap and consumed
 # via envFrom. Any value that should reach the snowplow process goes
-# here — the container itself has no direct `env:` array.
+# here -- the container itself has no direct `env:` array.
 env:
   DEBUG: "false"
   BLIZZARD: "false"
@@ -182,5 +238,8 @@ env:
   OTEL_ENABLED: "true"
   OTEL_EXPORTER_OTLP_ENDPOINT: krateo-clickstack-otel-collector.clickhouse-system:4317
   OTEL_SERVICE_NAME: snowplow
+  # Q-PREWARM-R2 1.3 -- PROBE_PORT is rendered into the chart's
+  # snowplow ConfigMap by templates/configmap.yaml (NOT here) so
+  # there is exactly one source of truth: .Values.probePort.
 
 jwtSignKeySecretName: jwt-sign-key
