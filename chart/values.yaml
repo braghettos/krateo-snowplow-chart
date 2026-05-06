@@ -241,5 +241,20 @@ env:
   # Q-PREWARM-R2 1.3 -- PROBE_PORT is rendered into the chart's
   # snowplow ConfigMap by templates/configmap.yaml (NOT here) so
   # there is exactly one source of truth: .Values.probePort.
+  # Q-PREWARM-R2R5 PR-B (R5) -- event-driven prewarm via the
+  # UserSecretWatcher informer. PREWARM_MODE selects between:
+  #   "event-driven" (default): bounded worker pool consumes ADD
+  #     events from -clientconfig Secrets and walks the widget
+  #     tree per user concurrently. PREWARM_WORKERS controls
+  #     parallelism; PREWARM_QUEUE bounds the in-flight backlog.
+  #   "legacy": preserves the synchronous WarmL1FromEntryPoints
+  #     binding-group loop. Use as a rollback lever via
+  #     `helm upgrade --reuse-values --set env.PREWARM_MODE=legacy`.
+  # K=4 is the conservative default for the current 2-CPU pod
+  # spec; tune via cache-tester K-sweep (spec §3) once the cluster
+  # is calm and re-deployable.
+  PREWARM_MODE: "event-driven"
+  PREWARM_WORKERS: "4"
+  PREWARM_QUEUE: "2048"
 
 jwtSignKeySecretName: jwt-sign-key
