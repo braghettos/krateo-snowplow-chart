@@ -141,8 +141,8 @@ spec:
                   - name
                   type: object
                   x-kubernetes-validations:
-                  - rule: "!has(self.userAccessFilter) || !has(self.verb) || self.verb == '' || self.verb == 'GET'"
-                    message: "userAccessFilter is only allowed on read-verb HTTP stages (verb must be GET or omitted); CRUD verbs would expose mutation under filter scope."
+                  - rule: "!has(self.userAccessFilter) || !has(self.verb) || self.verb == '' || self.verb in ['GET', 'HEAD', 'get', 'head']"
+                    message: "userAccessFilter is only allowed on read-verb HTTP stages (GET/HEAD, case-insensitive); CRUD verbs would expose mutation under filter scope."
                   - rule: "!has(self.userAccessFilter) || !has(self.exportJwt) || !self.exportJwt"
                     message: "userAccessFilter stages MUST NOT have exportJwt: true; would leak the raw JWT through the user-facing filtered response."
                   - rule: "!has(self.userAccessFilter) || (size(self.userAccessFilter.resource) > 0 && self.userAccessFilter.verb != '')"
