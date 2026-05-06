@@ -36,7 +36,7 @@ image:
   # MUST be >= 0.25.293 for this chart revision -- earlier images do
   # NOT honour PROBE_PORT and will silently leave port 8082 closed,
   # turning every kubelet probe into a connection-refused -> restart.
-  tag: "0.25.180"
+  tag: "0.25.301"
 
 imagePullSecrets: []
 nameOverride: ""
