@@ -39,7 +39,9 @@ image:
   # MUST be >= 0.25.307 for Lever A page-loop prewarm pagination
   # (SNOWPLOW_PREWARM_MAX_PAGES env var); pre-Lever-A images silently
   # ignore the env var (constant 1-page behaviour).
-  tag: "0.25.307"
+  # 0.25.311 raises APIResultCacheTTL 60s -> 5min (admin warm
+  # Resolve.func1.3 fix; see architect-resolve-func13-attribution-2026-05-07.md).
+  tag: "0.25.311"
 
 imagePullSecrets: []
 nameOverride: ""
