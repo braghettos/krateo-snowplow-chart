@@ -36,7 +36,10 @@ image:
   # MUST be >= 0.25.293 for this chart revision -- earlier images do
   # NOT honour PROBE_PORT and will silently leave port 8082 closed,
   # turning every kubelet probe into a connection-refused -> restart.
-  tag: "0.25.301"
+  # MUST be >= 0.25.307 for Lever A page-loop prewarm pagination
+  # (SNOWPLOW_PREWARM_MAX_PAGES env var); pre-Lever-A images silently
+  # ignore the env var (constant 1-page behaviour).
+  tag: "0.25.307"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -94,19 +97,25 @@ ingress:
 #   - Original 20 Gi: unchunked informer LIST at 50K (~15 GB spike).
 #   - 12 Gi: with chunked LIST (Limit=500) + informer.SetTransform
 #     stripping managedFields/last-applied -- peak RSS ~6 GB.
-#   - 8 Gi target (this revision): contingent on GOMEMLIMIT being set
-#     BELOW the container limit so the Go runtime backpressures via
-#     aggressive GC before Linux OOM-kills the pod. The earlier 8 Gi
-#     attempts OOMed because GOMEMLIMIT was set >= container limit and
-#     the runtime never saw memory pressure. Validate at 50K under
-#     Phase-6 load before treating this as the new baseline.
+#   - 8 Gi: relied on GOMEMLIMIT < container-limit for GC backpressure;
+#     OOM-killed once during L2 canary boundary (transient peak-alloc
+#     spike, not steady-state leak).
+#   - 12 Gi (this revision, 2026-05-07 + Lever A bundle): bumped per
+#     PM gate G3 cheap-insurance modification. Page-loop prewarm
+#     materialises 64 pages * N paginating widgets * M cohorts of
+#     post-refilter intermediates; even at projected +5 MB resident
+#     delta the peak-alloc trajectory was unmodelled. 4 GiB headroom
+#     above the prior 8 Gi limit lets us validate the +500 MB
+#     peak-delta gate (G3) without re-trippping the OOMKill canary.
+#     GOMEMLIMIT bumped 7GiB -> 10GiB to preserve the ratio
+#     (limit - GOMEMLIMIT = 2 GiB headroom for transient spikes).
 resources:
   limits:
     cpu: 4
-    memory: 8Gi
+    memory: 12Gi
   requests:
     cpu: 2
-    memory: 4Gi
+    memory: 6Gi
 
 # Q-PREWARM-R2 (v0.25.293+) probe configuration.
 #
@@ -224,20 +233,30 @@ env:
   BLIZZARD: "false"
   SKIP: "false"
   JQ_MODULES_PATH: /jq-modules
-  # Go runtime: trigger proactive GC at 6 GiB so we stay under the
-  # 8 Gi cgroup limit. Stress test peak was 3.9 GB at 1000 users;
-  # 6 GiB leaves 2 GiB headroom for transient spikes.
-  # Must be BELOW the container memory limit (8 Gi) so the Go runtime
+  # Go runtime: trigger proactive GC at 10 GiB so we stay under the
+  # 12 Gi cgroup limit. Lever A bundle (2026-05-07): bumped 7GiB ->
+  # 10GiB to track the resources.limits.memory raise (8Gi -> 12Gi),
+  # preserving the 2 GiB headroom that GC backpressure relies on.
+  # Must be BELOW the container memory limit so the Go runtime
   # backpressures via GC before Linux OOM-kills the pod. Setting this
   # at or above the container limit is a misconfiguration that has
   # caused OOM-kill incidents.
-  GOMEMLIMIT: 7GiB
+  GOMEMLIMIT: 10GiB
   # Lower GOGC (default 100) trades ~1% CPU for tighter memory headroom.
   GOGC: "50"
   CACHE_ENABLED: "true"
   OTEL_ENABLED: "true"
   OTEL_EXPORTER_OTLP_ENDPOINT: krateo-clickstack-otel-collector.clickhouse-system:4317
   OTEL_SERVICE_NAME: snowplow
+  # Lever A page-loop prewarm cap (Q-COLD-1, 2026-05-07). Number of
+  # pages prewarm walks per paginating widget. The page-loop
+  # terminates earlier when status.resourcesRefs.slice.continue is
+  # false; this is the hard ceiling for widgets whose data source
+  # extends past first-paint relevance. At perPage=5, 64 pages cover
+  # the first ~16s of frontend auto-pagination — well past first
+  # paint. Tunable here (not as Go constant) so PM/operators can
+  # raise/lower without rebuilding the image.
+  SNOWPLOW_PREWARM_MAX_PAGES: "64"
   # Q-PREWARM-R2 1.3 -- PROBE_PORT is rendered into the chart's
   # snowplow ConfigMap by templates/configmap.yaml (NOT here) so
   # there is exactly one source of truth: .Values.probePort.
