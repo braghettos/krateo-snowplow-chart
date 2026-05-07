@@ -41,7 +41,13 @@ image:
   # ignore the env var (constant 1-page behaviour).
   # 0.25.311 raises APIResultCacheTTL 60s -> 5min (admin warm
   # Resolve.func1.3 fix; see architect-resolve-func13-attribution-2026-05-07.md).
-  tag: "0.25.311"
+  # 0.25.312 wires AddFunc on RoleBinding/ClusterRoleBinding informers
+  # to fan out cohort prewarm via PrewarmWorkerPool.EnqueueForCohort —
+  # closes cyberjoker 22.5s cold-Dashboard gap on narrow-RBAC users
+  # (architect-cohort-prewarm-on-bid-transition-2026-05-07.md +
+  # pm-cohort-prewarm-on-bid-2026-05-07.md). Adds prewarm.cohort_fanouts
+  # counter at /metrics/runtime (G-PREWARM-COUNT canary gate).
+  tag: "0.25.312"
 
 imagePullSecrets: []
 nameOverride: ""
