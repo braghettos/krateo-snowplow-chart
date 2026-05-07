@@ -213,10 +213,24 @@ volumeMounts:
 # Extra envFrom entries appended to the default (chart-managed
 # ConfigMap + jwt-sign-key Secret). Used to pick up ConfigMaps owned
 # by other components without re-templating them here.
+#
+# Scope B drift fix (chart 0.25.308, 2026-05-07): the OTel auth header
+# previously lived as an INLINE pod-spec env entry (kubectl set env
+# leftover) which `feedback_chart_only_for_snowplow.md` forbids. The
+# token is now sourced from the cluster-managed Secret
+# `snowplow-otel-headers` via secretRef. Operators must create the
+# Secret out-of-band before the first deploy:
+#   kubectl create secret generic snowplow-otel-headers \
+#     --from-literal=OTEL_EXPORTER_OTLP_HEADERS="authorization=<token>" \
+#     -n krateo-system
+# The Secret is referenced as the source of truth so the token never
+# appears in chart values or git history.
 extraEnvFrom:
   - configMapRef:
       name: snowplow-api-override
       optional: true
+  - secretRef:
+      name: snowplow-otel-headers
 
 # Redis sidecar removed -- snowplow uses in-process MemCache (v0.25.266+).
 initContainers: []
@@ -245,9 +259,24 @@ env:
   # Lower GOGC (default 100) trades ~1% CPU for tighter memory headroom.
   GOGC: "50"
   CACHE_ENABLED: "true"
+  # L2 post-refilter cache (Q-RBACC-L2-1, promoted to chart-default in
+  # 0.25.308 / Scope B drift fold-in 2026-05-07). Empirically validated
+  # at 88% pod-wide hit rate yesterday — see
+  # `.claude/analysis/tester-l2-flag-on-chrome-2026-05-07.md` §7. PM
+  # tightened caps (256 MiB total / 10 MiB per entry) carried forward
+  # from the inline canary settings these values replace.
+  CACHE_L2_REFILTER_ENABLED: "true"
+  CACHE_L2_REFILTER_MAX_BYTES: "268435456"
+  CACHE_L2_REFILTER_MAX_ENTRY_BYTES: "10485760"
   OTEL_ENABLED: "true"
   OTEL_EXPORTER_OTLP_ENDPOINT: krateo-clickstack-otel-collector.clickhouse-system:4317
   OTEL_SERVICE_NAME: snowplow
+  # OTel trace sampling — keep 5% of traces under parent-aware
+  # ratio sampling so high-traffic paths produce manageable volume
+  # without dropping correlated spans. Promoted from inline kubectl
+  # set env to chart-default in 0.25.308.
+  OTEL_TRACES_SAMPLER: "parentbased_traceidratio"
+  OTEL_TRACES_SAMPLER_ARG: "0.05"
   # Lever A page-loop prewarm cap (Q-COLD-1, 2026-05-07). Number of
   # pages prewarm walks per paginating widget. The page-loop
   # terminates earlier when status.resourcesRefs.slice.continue is
