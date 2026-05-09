@@ -6,12 +6,6 @@ metadata:
   {{- include "snowplow.labels" . | nindent 4 }}
 data:
   PORT: "{{ .Values.service.port }}"
-  {{- if .Values.probePort }}
-  # Q-PREWARM-R2 1.3 -- enables the dedicated probe-only http.Server
-  # in the snowplow binary. Single source of truth: .Values.probePort.
-  # Set to 0 in values.yaml to disable the second listener.
-  PROBE_PORT: "{{ .Values.probePort }}"
-  {{- end }}
   AUTHN_NAMESPACE: {{ .Release.Namespace }}
   {{- range $key, $value := .Values.env }}
   {{ $key }}: {{ $value | quote }}
