@@ -1,14 +1,15 @@
-# Default values for snowplow (braghettos fork — clean-slate-0.30.0).
+# Default values for snowplow (braghettos fork — chart-0.30.1).
 #
-# This is the stripped variant of the chart, compatible with the
-# upstream `0.20.5` snowplow binary (commit 6375c9a). Every value
-# the 0.20.5 binary cannot consume is REMOVED here:
+# This is the slim variant of the chart, paired with the snowplow
+# 0.30.1 binary which adds informer plumbing on top of upstream 0.20.5.
+# At 0.30.1 the cache subsystem is plumbing-only — gated by the new
+# CACHE_ENABLED env (default "false" here so the gate stays dormant on
+# deploy). Other production-grown values still absent at this tag:
 #   - probePort 8082 + isolated probe server (R2 listener does not
 #     exist at 0.20.5; probes target the main `http` port)
 #   - cache-warmup-config volume (cache subsystem absent at 0.20.5)
 #   - frontend-config volume (entry-point prewarm absent at 0.20.5)
 #   - snowplow-api-override extraEnvFrom (config carrier removed)
-#   - CACHE_ENABLED env (cache subsystem absent)
 #   - PREWARM_MODE/PREWARM_WORKERS/PREWARM_QUEUE env (prewarm absent)
 #   - OTEL_* env (OpenTelemetry absent at 0.20.5)
 #
@@ -23,7 +24,7 @@ image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
   # Pinned to the clean-slate baseline tag.
-  tag: "0.30.0"
+  tag: "0.30.1"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -129,11 +130,19 @@ tolerations: []
 affinity: {}
 
 # Env vars rendered into the chart's snowplow ConfigMap and consumed
-# via envFrom. Only knobs the 0.20.5 binary actually reads.
+# via envFrom. Only knobs the 0.20.5 binary actually reads, plus the
+# 0.30.1 cache plumbing toggle.
 env:
   DEBUG: "false"
   BLIZZARD: "false"
   SKIP: "false"
   JQ_MODULES_PATH: /jq-modules
+  # Cache subsystem (informer plumbing) introduced at 0.30.1. Default
+  # "false" keeps the cache dormant: cache.Disabled() returns true at
+  # startup, the dynamicinformer factory is NEVER instantiated, no
+  # goroutines spawn, every consumer takes the apiserver branch.
+  # Falsifier log line "cache.disabled=true" fires on pod start.
+  # Flip to "true" at 0.30.2 when consumer routing lands.
+  CACHE_ENABLED: "false"
 
 jwtSignKeySecretName: jwt-sign-key
