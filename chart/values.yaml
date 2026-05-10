@@ -90,7 +90,14 @@ livenessProbe:
 
 readinessProbe:
   httpGet:
-    path: /ready
+    # Upstream 0.20.5 binary registers /health (and /api-info/names,
+    # swagger) but does NOT expose a separate /ready endpoint. Using
+    # /ready here drives the probe to a permanent 404, which surfaces
+    # at deploy time as a NotReady pod that has to be unblocked by an
+    # out-of-band --set readinessProbe.httpGet.path=/health override.
+    # /health is also wired to liveness/startup against this binary;
+    # revisit when upstream adds a dedicated /ready handler.
+    path: /health
     port: http
   periodSeconds: 5
   timeoutSeconds: 3
