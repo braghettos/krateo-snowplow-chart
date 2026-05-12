@@ -109,12 +109,50 @@ spec:
                     payload:
                       description: Payload is the request body
                       type: string
+                    userAccessFilter:
+                      description: |
+                        Per-stage RBAC filter (Q-COLD-1 C(d)). When present, snowplow drops
+                        items from the response whose namespace the caller lacks {verb}
+                        access to. Enables narrow-RBAC iterator collapse for the dev-persona
+                        cohort. Only allowed on read-verb HTTP stages.
+                      properties:
+                        group:
+                          description: Kubernetes API group ("" for the core group).
+                          type: string
+                        namespaceFrom:
+                          description: |
+                            JQ expression yielding the namespace string from the iterator
+                            value. Defaults to "." (the iterator value itself).
+                          type: string
+                        resource:
+                          description: Kubernetes resource (plural form, e.g. "pods").
+                          type: string
+                        verb:
+                          description: |
+                            Kubernetes verb to check via SubjectAccessReview. Read-only verbs
+                            only.
+                          enum:
+                          - get
+                          - list
+                          - watch
+                          type: string
+                      required:
+                      - resource
+                      - verb
+                      type: object
                     verb:
                       description: Verb is the request method (GET if omitted)
                       type: string
                   required:
                   - name
                   type: object
+                  x-kubernetes-validations:
+                  - rule: "!has(self.userAccessFilter) || !has(self.verb) || self.verb == '' || self.verb in ['GET', 'HEAD', 'get', 'head']"
+                    message: "userAccessFilter is only allowed on read-verb HTTP stages (GET/HEAD, case-insensitive); CRUD verbs would expose mutation under filter scope."
+                  - rule: "!has(self.userAccessFilter) || !has(self.exportJwt) || !self.exportJwt"
+                    message: "userAccessFilter stages MUST NOT have exportJwt: true; would leak the raw JWT through the user-facing filtered response."
+                  - rule: "!has(self.userAccessFilter) || (size(self.userAccessFilter.resource) > 0 && self.userAccessFilter.verb != '')"
+                    message: "userAccessFilter must specify a non-empty resource and verb; a degenerate filter would collapse the SubjectAccessReview check to a wildcard."
                 type: array
                 x-kubernetes-list-type: atomic
               filter:
