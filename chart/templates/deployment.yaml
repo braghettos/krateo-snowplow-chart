@@ -45,6 +45,19 @@ spec:
             {{- with .Values.extraEnvFrom }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          {{- if hasKey .Values.env "CACHE_ENABLED" }}
+          # CACHE_ENABLED MUST appear as a literal env entry on the
+          # container (not only via the ConfigMap envFrom) so the
+          # bench harness's `_chart_supports_cache_toggle()` jsonpath
+          # lookup detects it. Kubernetes resolves container.env after
+          # envFrom, so an explicit entry takes precedence over the
+          # ConfigMap entry of the same name. Value comes from
+          # .Values.env.CACHE_ENABLED (default "true" at 0.30.4;
+          # --set env.CACHE_ENABLED=false to toggle off).
+          env:
+            - name: CACHE_ENABLED
+              value: {{ index .Values.env "CACHE_ENABLED" | quote }}
+          {{- end }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
