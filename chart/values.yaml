@@ -62,17 +62,19 @@ ingress:
           pathType: ImplementationSpecific
   tls: []
 
-# Modest defaults — 0.20.5 has no in-process cache, no informer, no
-# prewarm; memory needs are dominated by per-request resolution and
-# transient JSON marshal/unmarshal. Re-tune at later tags as the
-# cache + informer re-land.
+# Production memory budget: 4Gi request / 8Gi limit
+# (Diego-confirmed 2026-05-14). Prior 2Gi limit was test-cluster
+# conservative; today's 0.30.92 admin smoke OOMed at 2Gi at 50K-bench
+# scale. Production matches 4Gi/8Gi — 0.30.x has informer + in-process
+# cache + bursty per-request resolution; memory is dominated by
+# transient JSON marshal/unmarshal of full RESTAction trees.
 resources:
   limits:
     cpu: 2
-    memory: 2Gi
+    memory: 8Gi
   requests:
     cpu: 500m
-    memory: 512Mi
+    memory: 4Gi
 
 # Probes target the main `http` listener — 0.20.5 has no second
 # listener. K8s defaults retained except for an explicit failureThreshold
