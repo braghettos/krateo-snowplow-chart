@@ -152,5 +152,14 @@ env:
   # Override at install/upgrade time with --set env.CACHE_ENABLED=false to
   # fall back to the 0.30.3 (cache=off) behaviour.
   CACHE_ENABLED: "true"
+  # Resolver pivot (0.30.95): resolver inner-call K8s GETs/LISTs are
+  # served from the in-process informer cache instead of apiserver
+  # round-trips. Default ON per Diego 2026-05-15 — banks the apiserver
+  # load reduction + inner-call latency win (measured 10.4s -> 3.0s on
+  # compositions-panels at 50K). Escape hatch: --set
+  # env.RESOLVER_USE_INFORMER=false reverts to the 0.30.94 apiserver
+  # path. Known follow-up: cold pod restart triggers an informer-sync
+  # warm-up window; prewarm is a tracked fast-follow.
+  RESOLVER_USE_INFORMER: "true"
 
 jwtSignKeySecretName: jwt-sign-key
