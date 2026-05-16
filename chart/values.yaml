@@ -25,6 +25,19 @@ replicaCount: 1
 
 progressDeadlineSeconds: 600
 
+# Explicit Deployment update strategy. With replicaCount:1 and no
+# strategy block, Kubernetes defaults to RollingUpdate with
+# maxUnavailable:25% which rounds UP to 1 at a single replica — the old
+# pod is killed BEFORE the new pod is Ready, so every deploy has a
+# downtime window. maxUnavailable:0 + maxSurge:1 keeps the old pod
+# serving until the new pod passes its readiness probe → zero-downtime
+# rollout. (Critical once readiness gates on a multi-minute prewarm.)
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
 image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
@@ -62,19 +75,22 @@ ingress:
           pathType: ImplementationSpecific
   tls: []
 
-# Production memory budget: 4Gi request / 8Gi limit
-# (Diego-confirmed 2026-05-14). Prior 2Gi limit was test-cluster
-# conservative; today's 0.30.92 admin smoke OOMed at 2Gi at 50K-bench
-# scale. Production matches 4Gi/8Gi — 0.30.x has informer + in-process
-# cache + bursty per-request resolution; memory is dominated by
-# transient JSON marshal/unmarshal of full RESTAction trees.
+# Production memory budget: 16Gi request / 16Gi limit
+# (Diego-confirmed 2026-05-15). Right-sized for a 1000-user production
+# deployment: the composition informer alone is ~1.2 GB and concurrent
+# per-user resolve working memory scales with active users. Request ==
+# limit makes the pod Guaranteed QoS so it is not a burst-eviction
+# target. Prior 4Gi/8Gi was test-cluster conservative; 0.30.92 admin
+# smoke OOMed at the lower bound at 50K-bench scale. Memory is dominated
+# by the informer cache plus transient JSON marshal/unmarshal of full
+# RESTAction trees during bursty per-request resolution.
 resources:
   limits:
     cpu: 2
-    memory: 8Gi
+    memory: 16Gi
   requests:
     cpu: 500m
-    memory: 4Gi
+    memory: 16Gi
 
 # Probes target the main `http` listener — 0.20.5 has no second
 # listener. K8s defaults retained except for an explicit failureThreshold
