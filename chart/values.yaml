@@ -94,15 +94,33 @@ resources:
     cpu: 500m
     memory: 16Gi
 
-# Probes target the main `http` listener — 0.20.5 has no second
-# listener. K8s defaults retained except for an explicit failureThreshold
-# headroom on liveness so transient scheduler hiccups do not restart
-# the pod.
+# Probes target the main `http` listener.
+#
+# 0.30.102 Tag B — probe-gated readiness. The snowplow binary now
+# exposes a dedicated /readyz endpoint distinct from /health:
+#   - /health  : liveness-only (process alive). A still-warming pod is
+#                alive and must NOT be restarted — livenessProbe stays
+#                on /health.
+#   - /readyz  : readiness. Returns 200 only once the Tag B Phase 1
+#                startup informer-warmup has completed (Phase1Done);
+#                503 while warming. readinessProbe + startupProbe target
+#                /readyz so traffic is withheld until the navigated
+#                informers are warm.
+#
+# Behavior-neutral default: with PREWARM_ENABLED unset (the chart does
+# NOT set it — absent => OFF) the binary flips Phase1Done immediately at
+# startup, so /readyz returns 200 from the first probe — the gate is a
+# no-op until the cold-vs-warm bench opts in via PREWARM_ENABLED=true.
+#
+# startupProbe budget: failureThreshold * periodSeconds = 90 * 10 = 900s
+# — the Phase 1 SA-credentialed resolution walk + the all-informer sync
+# barrier may take several minutes at production scale; the pod must not
+# be killed mid-warmup.
 startupProbe:
   httpGet:
-    path: /health
+    path: /readyz
     port: http
-  failureThreshold: 30
+  failureThreshold: 90
   periodSeconds: 10
   timeoutSeconds: 3
 
@@ -116,14 +134,11 @@ livenessProbe:
 
 readinessProbe:
   httpGet:
-    # Upstream 0.20.5 binary registers /health (and /api-info/names,
-    # swagger) but does NOT expose a separate /ready endpoint. Using
-    # /ready here drives the probe to a permanent 404, which surfaces
-    # at deploy time as a NotReady pod that has to be unblocked by an
-    # out-of-band --set readinessProbe.httpGet.path=/health override.
-    # /health is also wired to liveness/startup against this binary;
-    # revisit when upstream adds a dedicated /ready handler.
-    path: /health
+    # 0.30.102 Tag B: the binary now exposes a dedicated /readyz probe
+    # endpoint (200 once Phase1Done; 503 while warming). With
+    # PREWARM_ENABLED OFF (chart default) /readyz returns 200 from the
+    # first probe — behavior-neutral.
+    path: /readyz
     port: http
   periodSeconds: 5
   timeoutSeconds: 3
