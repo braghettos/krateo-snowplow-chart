@@ -194,5 +194,14 @@ env:
   # path. Known follow-up: cold pod restart triggers an informer-sync
   # warm-up window; prewarm is a tracked fast-follow.
   RESOLVER_USE_INFORMER: "true"
+  # Phase 1 navigation-root source (0.30.107). Phase 1's startup walk
+  # reads the navigation entry points from the frontend ConfigMap's
+  # `config.json` (.api.INIT / .api.ROUTES_LOADER) instead of hardcoding
+  # the navmenus/routesloaders GVRs — the ConfigMap IS the navigation
+  # contract. FRONTEND_CONFIG_CONFIGMAP names that ConfigMap; its
+  # namespace is AUTHN_NAMESPACE (snowplow's control-plane namespace).
+  # An unset/empty value falls back to the default "frontend-config-vars".
+  # Only consumed when PREWARM_ENABLED=true.
+  FRONTEND_CONFIG_CONFIGMAP: "frontend-config-vars"
 
 jwtSignKeySecretName: jwt-sign-key
