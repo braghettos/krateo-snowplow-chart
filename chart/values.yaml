@@ -41,8 +41,12 @@ strategy:
 image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
-  # Pinned to the clean-slate baseline tag.
-  tag: "0.30.4"
+  # tag is intentionally unset — deployment.yaml resolves it via
+  #   .Values.image.tag | default .Chart.AppVersion
+  # and under the lockstep convention .Chart.AppVersion is the release
+  # semver (release-tag.yaml substitutes APP_VERSION from the tag). An
+  # explicit override is still possible via --set image.tag=<x>.
+  tag: ""
 
 imagePullSecrets: []
 nameOverride: ""

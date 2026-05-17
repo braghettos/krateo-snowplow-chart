@@ -39,6 +39,26 @@ jobs:
           echo "app=${TAG}"   >> "$GITHUB_OUTPUT"
           echo "Tag ${TAG} -> chart=${TAG} app=${TAG}"
 
+      - name: Sync CRDs from the matching snowplow release
+        # Stage 2 of the CRD pipeline. LOCKSTEP: this chart repo is
+        # tagged with the same semver as the snowplow release it ships,
+        # so github.ref_name (the chart tag) IS the snowplow ref. Clone
+        # braghettos/snowplow at that exact tag and copy its crds/ into
+        # crd-chart/templates/, so the packaged crd-chart vendors the
+        # CRD schema of the snowplow app version being shipped — never a
+        # drifted main. Runs before the crd-chart lint/package steps.
+        #
+        # HARD-FAIL by design: if the chart is tagged with a semver that
+        # has no matching snowplow tag, `git clone --branch` exits non-
+        # zero and `set -e` aborts the job — there is no `main` fallback.
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "${GITHUB_REF_NAME}" \
+            https://github.com/braghettos/snowplow.git /tmp/snowplow-src
+          bash scripts/sync-crds.sh /tmp/snowplow-src
+          echo "--- crd-chart/templates after sync ---"
+          ls -la crd-chart/templates
+
       - name: Substitute CHART_VERSION and APP_VERSION placeholders
         run: |
           sed -i "s/CHART_VERSION/${{ steps.versions.outputs.chart }}/g" chart/Chart.yaml
