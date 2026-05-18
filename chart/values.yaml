@@ -79,24 +79,25 @@ ingress:
           pathType: ImplementationSpecific
   tls: []
 
-# Production memory budget: 16Gi request / 16Gi limit
-# (Diego-confirmed 2026-05-15). Right-sized for a 1000-user production
-# deployment: the composition informer alone is ~1.2 GB and concurrent
-# per-user resolve working memory scales with active users. memory
-# request == limit guarantees the scheduler reserves the full footprint
-# and the pod is not a memory-pressure eviction target. Prior 4Gi/8Gi
-# was test-cluster conservative; 0.30.92 admin smoke OOMed at the lower
-# bound at 50K-bench scale. Memory is dominated by the informer cache
-# plus transient JSON marshal/unmarshal of full RESTAction trees during
-# bursty per-request resolution. (CPU stays request 500m / limit 2 —
-# QoS is Burstable; CPU is not the constrained resource here.)
+# Memory budget — Ship 0.30.122 R4 Lever 4: limit raised 16Gi -> 24Gi.
+# 0.30.121 enabled PREWARM_ENABLED=true, which moved the dynamic
+# informer's initial relist of the 48,999-composition fixture into pod
+# startup; the un-bounded relist transient peaked at ~17.7 GiB and
+# OOMKilled the pod 4x against the 16Gi limit. R4 Lever 1 (the streaming
+# ListWatch) bounds that transient, but the 24Gi limit is the PM-authorized
+# interim headroom bump that converges with the permanent right-size —
+# the final number is bench-derived (the tester refines it from the
+# post-fix steady-state RSS). request == limit so the scheduler reserves
+# the full footprint and the pod is not a memory-pressure eviction
+# target. (CPU stays request 500m / limit 2 — QoS is Burstable; CPU is
+# not the constrained resource here.)
 resources:
   limits:
     cpu: 2
-    memory: 16Gi
+    memory: 24Gi
   requests:
     cpu: 500m
-    memory: 16Gi
+    memory: 24Gi
 
 # Probes target the main `http` listener.
 #
@@ -232,5 +233,22 @@ env:
   # re-checks servability — a now-synced informer serves from cache
   # instead of a second apiserver LIST. Default-off scaffolding.
   RESOLVER_SYNC_WAIT_MS: "0"
+  # Ship 0.30.122 R4 Lever 1 — streaming ListWatch for the composition
+  # GVR's dynamic informer. Default ON: the informer's initial relist
+  # streams the paged LIST response body item-by-item through a
+  # json.Decoder (strip applied inline, pre-transform object freed before
+  # the next element) instead of materialising the whole 48,999-object
+  # pre-transform set — the ~17.7 GiB relist transient that OOMKilled
+  # 0.30.121 under PREWARM_ENABLED=true. Set "false" to revert the
+  # composition GVR to the standard NewFilteredDynamicInformer (AC-7).
+  RESOLVER_COMPOSITION_STREAMING_LIST: "true"
+  # Ship 0.30.122 R4 Lever 3 — Go runtime soft memory ceiling. GOMEMLIMIT
+  # makes the Go GC run more aggressively as the heap approaches this
+  # limit, so transient allocation spikes are reclaimed before the cgroup
+  # hard limit (24Gi) triggers an OOMKill. Set ~11-12 GiB — above the
+  # post-fix steady-state informer-cache floor with margin, well under
+  # the 24Gi pod limit. Provisional: the tester refines the final value
+  # from the post-fix bench (it must sit above the steady-state floor).
+  GOMEMLIMIT: "11GiB"
 
 jwtSignKeySecretName: jwt-sign-key
