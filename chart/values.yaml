@@ -260,5 +260,21 @@ env:
   # F2's startup SA-prewarm. Default ON. Set "false" and every /call
   # stage takes the HTTP path, byte-identical to 0.30.121.
   RESOLVER_INPROCESS_NESTED_CALL: "true"
+  # Ship 0.30.125 (F2) — the SA-driven content-population pass. When
+  # enabled, a new Phase-1 Step 7.5 (after the informer sync barrier,
+  # before /readyz flips to 200) resolves the navigation's data-source
+  # RESTActions under the snowplow ServiceAccount and warms F1's
+  # identity-free content L1 — so the first real /call by any never-seen
+  # user is a content hit with zero resolve and cold navigations vanish.
+  # Chart default FALSE: the production default is decided by F2's 50K
+  # MaxRSS bench (FAL-4), not pre-set. The validation deploy sets it true
+  # via --set. Flag-off, Phase-1 startup is byte-identical to 0.30.124.
+  PREWARM_CONTENT_ENABLED: "false"
+  # Ship 0.30.125 (F2) — per-envelope circuit-breaker for the content
+  # pass. A prewarmed RESTAction whose resolved envelope exceeds this
+  # many bytes is logged (content.prewarm.envelope_oversize) so the
+  # threshold can be tuned. ~32 MiB admits compositions-list's ~26 MB
+  # 50K-scale envelope while still flagging a pathologically large one.
+  PREWARM_CONTENT_MAX_BYTES: "33554432"
 
 jwtSignKeySecretName: jwt-sign-key
