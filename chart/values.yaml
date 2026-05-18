@@ -207,5 +207,30 @@ env:
   # An unset/empty value falls back to the default "frontend-config-vars".
   # Only consumed when PREWARM_ENABLED=true.
   FRONTEND_CONFIG_CONFIGMAP: "frontend-config-vars"
+  # Ship 0.30.121 R2-a — enable Phase-1 prewarm. With prewarm OFF no
+  # informer is warmed before the first request, so the resolver pivot's
+  # Gate 6 (informer registered + synced) falls through to a second
+  # apiserver LIST — the ~5.81 GiB transient-memory line on the 50K
+  # bench. PREWARM_ENABLED=true runs the Phase-1 SA-credentialed
+  # navigation walk at startup so the composition GVR's informer is
+  # synced before traffic arrives and Gate 6 serves from cache. The pod
+  # now takes ~67s to become Ready (Phase-1 warmup) — well within the
+  # 900s startupProbe budget.
+  PREWARM_ENABLED: "true"
+  # Ship 0.30.121 R1-b — operator kill-switch for the httpcall verbose
+  # wire-dump (DumpResponse). When false (default) endpoint.Debug is
+  # never set regardless of a per-RESTAction krateo.io/verbose annotation
+  # — so a stray annotation on a heavy RESTAction cannot OOM the pod. The
+  # verbose wire-dump stringifies entire HTTP response bodies (the
+  # multi-MB compositions LIST) — ~1.94 GiB alloc_space on the 50K bench.
+  RESOLVER_VERBOSE_WIRE_DUMP: "false"
+  # Ship 0.30.121 R2-b — bounded single-attempt informer sync-wait at the
+  # resolver-pivot Gate 6. Default 0 = disabled = pre-0.30.121 behaviour
+  # (an unsynced GVR falls straight through to the apiserver). When set
+  # positive, a Gate-6 miss does ONE channel-select wait, hard-capped at
+  # this many milliseconds, on the GVR's informer sync channel, then
+  # re-checks servability — a now-synced informer serves from cache
+  # instead of a second apiserver LIST. Default-off scaffolding.
+  RESOLVER_SYNC_WAIT_MS: "0"
 
 jwtSignKeySecretName: jwt-sign-key
