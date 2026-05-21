@@ -285,5 +285,23 @@ env:
   # navigation STRUCTURE and discover (GVR-scoped) informers, so a small
   # default suffices.
   PREWARM_PAGE_LIMIT: "5"
+  # Ship Resilience-1 (0.30.162) — controller-health watch surface.
+  # Comma-separated list of namespaces whose Deployment + Endpoints
+  # objects are watched for the snowplow_upstream_controller_health
+  # gauge. Empty string disables the per-namespace watches (cluster-
+  # scoped webhook-config watches still run; gauges publish webhooks
+  # only). Discovery of WHICH Deployments to watch within these
+  # namespaces is automatic via MutatingWebhookConfiguration /
+  # ValidatingWebhookConfiguration introspection — there is NO
+  # hardcoded controller-name list (feedback_no_special_cases).
+  #
+  # Default: krateo-system. Multi-namespace: comma-separated, e.g.
+  # "krateo-system,kube-system". Empty: per-namespace watches inert.
+  #
+  # Fully gated by CACHE_ENABLED (project_caching_is_provisional);
+  # CACHE_ENABLED=false short-circuits the subsystem before any
+  # typed clientset is constructed (no goroutine, no apiserver
+  # WATCH, no expvar entries).
+  CONTROLLER_HEALTH_NAMESPACES: "krateo-system"
 
 jwtSignKeySecretName: jwt-sign-key
