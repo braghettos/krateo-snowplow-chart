@@ -303,5 +303,13 @@ env:
   # typed clientset is constructed (no goroutine, no apiserver
   # WATCH, no expvar entries).
   CONTROLLER_HEALTH_NAMESPACES: "krateo-system"
+  # Ship 0.30.190 Fix B — additive single-line stderr lane for the
+  # dispatch.cache_key.computed slog row. Robust under pretty-handler
+  # multi-line JSON / kubelet log rotation / otel daemonset filter.
+  # The existing slog.Info emit stays ON regardless of this knob; this
+  # toggle ONLY controls the parallel fmt.Fprintf(os.Stderr, ...) lane.
+  # Default off (steady-state); ops flips on at /tmp/snowplow-values-*.yaml
+  # override during diagnostic ships.
+  DISPATCH_KEY_DIAG_ENABLED: "false"
 
 jwtSignKeySecretName: jwt-sign-key
