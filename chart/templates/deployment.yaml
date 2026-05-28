@@ -9,6 +9,19 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  {{- with .Values.strategy }}
+  # Render the deployment update strategy from values when declared. For a
+  # single-replica deployment with a large memory request (e.g. 24Gi),
+  # RollingUpdate maxSurge:0/maxUnavailable:1 yields recreate-in-place: the
+  # old pod terminates first so its memory frees BEFORE the new pod is
+  # scheduled — it NEVER needs two large pods to coexist on the cluster.
+  # The k8s default (RollingUpdate 25%/25%) surges a second pod, which on a
+  # single-replica + large-request deployment deadlocks when no node can
+  # fit a second copy. Absent in values → omitted → k8s default applies
+  # (backward-compatible with charts that never set .Values.strategy).
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "snowplow.selectorLabels" . | nindent 6 }}
