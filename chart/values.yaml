@@ -30,11 +30,11 @@ progressDeadlineSeconds: 600
 image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
-  # Ship 2 / 0.30.226 — plurals-resolver hot-path swap (north-star
-  # payload). Replaces dynamic.KindFor + dynamic.ResourceFor + crds GET
-  # cold paths with the permanent PluralsStore on customer-traffic hot
-  # paths. Builds on Ship 1 / 0.30.225 plurals-additive baseline.
-  tag: "0.30.226"
+  # Ship I / 0.30.227 — runtime/trace.Region instrumentation on customer
+  # /call (observability-only, no behavior change). Re-based atop Ship 1
+  # / 0.30.225 plurals-additive baseline; Ship 2 / 0.30.226 resolver swap
+  # is NOT included.
+  tag: "0.30.227"
 
 imagePullSecrets: []
 nameOverride: ""
