@@ -30,12 +30,12 @@ progressDeadlineSeconds: 600
 image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
-  # Ship 0.5.5 — process-alive-only /health handler + readiness wired
-  # to /readyz. MUST be >= 0.30.224 for this chart revision: earlier
-  # binaries pair a /health handler that does rest.InClusterConfig()
-  # per probe with this chart's relaxed liveness window, which masks
-  # disk-IO stalls instead of avoiding them.
-  tag: "0.30.224"
+  # Ship 1 / 0.30.225 — plurals additive (permanent PluralsStore +
+  # handler swap + RegisteredGVRs expvar envelope). Builds on the Ship
+  # 0.5.5 / 0.30.224 process-alive-only /health handler. MUST be >=
+  # 0.30.225 for the RegisteredGVRs envelope shape Ship 2 consumes at
+  # its entry gate.
+  tag: "0.30.225"
 
 imagePullSecrets: []
 nameOverride: ""
