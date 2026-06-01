@@ -30,11 +30,13 @@ progressDeadlineSeconds: 600
 image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
-  # Production-aim cleanup / 0.30.228 — Ship 2 (plurals-resolver hot-path
-  # swap, 110 LOC delete) + seed-path nil-rc fix + #119 NewClient mapper-
-  # skip option. NO perf gain claimed; architectural cleanup only.
-  # Re-applied verbatim from 97e9834 atop Ship I / 0.30.227 baseline.
-  tag: "0.30.228"
+  # nil-rc helper fallback / 0.30.229 — restores rest.InClusterConfig
+  # fallback inside discoverPluralInfo + discoverKindForGVR (design v2
+  # Option A). Fixes the latent nil-rc path that 0.30.228 production-aim
+  # cleanup exposed: Dashboard Kind=* widget /call errored with
+  # "plurals discovery: nil *rest.Config". Real fix per
+  # feedback_no_park_broken_behind_flag; mirrors pre-Ship-2 contract.
+  tag: "0.30.229"
 
 imagePullSecrets: []
 nameOverride: ""
