@@ -40,7 +40,17 @@ image:
   # 0.30.231 deletes WithSkipMapper and accepts per-call mapper build
   # (dead allocation, invisible at customer vantage). Pod-boot-readiness
   # gate validated 0.30.229+0.30.230, this ship is the structural fix.
-  tag: "0.30.231"
+  #
+  # 0.30.232 (attempt #7 — type-safety constructor): six HARD REVERTs
+  # (0.30.226 → 0.30.231) traced to a recurring blind-spot: a
+  # phase1Walker struct literal omitting the rc field. Site #3
+  # (prewarm_engine_boot.go:124 rePrewarmBoot) was the bug-bearing site
+  # — not a crashloop but a silent re-walk failure (continue-on-error
+  # at line 139), defeating the boot-race fix. 0.30.232 introduces
+  # newPhase1Walker(rc, authnNS, opts...) as the SOLE constructor —
+  # rc is REQUIRED at the type level, the compiler enforces every
+  # construction site supplies it. Correctness-only, no perf delta.
+  tag: "0.30.232"
 
 imagePullSecrets: []
 nameOverride: ""
