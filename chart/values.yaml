@@ -30,11 +30,11 @@ progressDeadlineSeconds: 600
 image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
-  # Ship I / 0.30.227 — runtime/trace.Region instrumentation on customer
-  # /call (observability-only, no behavior change). Re-based atop Ship 1
-  # / 0.30.225 plurals-additive baseline; Ship 2 / 0.30.226 resolver swap
-  # is NOT included.
-  tag: "0.30.227"
+  # Production-aim cleanup / 0.30.228 — Ship 2 (plurals-resolver hot-path
+  # swap, 110 LOC delete) + seed-path nil-rc fix + #119 NewClient mapper-
+  # skip option. NO perf gain claimed; architectural cleanup only.
+  # Re-applied verbatim from 97e9834 atop Ship I / 0.30.227 baseline.
+  tag: "0.30.228"
 
 imagePullSecrets: []
 nameOverride: ""
