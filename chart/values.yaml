@@ -30,15 +30,17 @@ progressDeadlineSeconds: 600
 image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
-  # rc-at-root / 0.30.230 — fixes the nil-rc latent path STRUCTURALLY
-  # by threading the SA *rest.Config at all 12 ResolveOptions
-  # construction sites (5 widgets, 6 restactions, 1 apiref). Closes
-  # the four-revert pattern (0.30.226 / 0.30.228 / 0.30.229 reverts).
-  # Per Option B fix-at-root: rc no longer requires per-consumer
-  # InClusterConfig fallback because every downstream peer consumer
-  # (cache.GVRFor, dynamic.NewClient, crdschema.ValidateObjectStatus)
-  # receives a non-nil rc at the construction-site literal.
-  tag: "0.30.230"
+  # drop-WithSkipMapper / 0.30.231 — closes the FIVE-revert loop on the
+  # production-aim cleanup surface (0.30.226 / 0.30.228 / 0.30.229 /
+  # 0.30.230). Ship 0.30.230's rc-at-root fix at 12 ResolveOptions
+  # construction sites DID work — rc was non-nil end-to-end. The crash
+  # was a SEPARATE defect: dynamic.WithSkipMapper() from #119 leaves
+  # uc.mapper=nil; resourceInterfaceFor (client.go:146) calls
+  # uc.mapper.RESTMapping unconditionally, panicking on first Get.
+  # 0.30.231 deletes WithSkipMapper and accepts per-call mapper build
+  # (dead allocation, invisible at customer vantage). Pod-boot-readiness
+  # gate validated 0.30.229+0.30.230, this ship is the structural fix.
+  tag: "0.30.231"
 
 imagePullSecrets: []
 nameOverride: ""
