@@ -80,6 +80,23 @@ resources:
     cpu: 500m
     memory: 512Mi
 
+# Deployment strategy — Recreate by default.
+#
+# Ship 0.5.5 — production memory request is 24Gi and only one node has
+# that much free; RollingUpdate (maxSurge>0) requires the new pod to
+# schedule BEFORE the old pod terminates, which fails on memory pressure
+# (FailedScheduling / NotTriggerScaleUp). Recreate scales the old pod to
+# zero first, freeing the node, then schedules the new pod. /readyz
+# (gated on cache.IsPhase1Done) holds the LB out of the new pod until
+# every walker-discovered informer HasSynced, so user-facing traffic
+# does not hit a cold pod even though there is a brief window with no
+# Ready endpoint.
+#
+# Override to RollingUpdate only when resource requests fit twice the
+# pod into the cluster (e.g. multi-node, larger nodes).
+strategy:
+  type: Recreate
+
 # Ship 0.5.5 — liveness/readiness probe split.
 #
 # All three probes target the main :8081 listener — there is NO
