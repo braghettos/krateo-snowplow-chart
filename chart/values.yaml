@@ -30,13 +30,15 @@ progressDeadlineSeconds: 600
 image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
-  # nil-rc helper fallback / 0.30.229 — restores rest.InClusterConfig
-  # fallback inside discoverPluralInfo + discoverKindForGVR (design v2
-  # Option A). Fixes the latent nil-rc path that 0.30.228 production-aim
-  # cleanup exposed: Dashboard Kind=* widget /call errored with
-  # "plurals discovery: nil *rest.Config". Real fix per
-  # feedback_no_park_broken_behind_flag; mirrors pre-Ship-2 contract.
-  tag: "0.30.229"
+  # rc-at-root / 0.30.230 — fixes the nil-rc latent path STRUCTURALLY
+  # by threading the SA *rest.Config at all 12 ResolveOptions
+  # construction sites (5 widgets, 6 restactions, 1 apiref). Closes
+  # the four-revert pattern (0.30.226 / 0.30.228 / 0.30.229 reverts).
+  # Per Option B fix-at-root: rc no longer requires per-consumer
+  # InClusterConfig fallback because every downstream peer consumer
+  # (cache.GVRFor, dynamic.NewClient, crdschema.ValidateObjectStatus)
+  # receives a non-nil rc at the construction-site literal.
+  tag: "0.30.230"
 
 imagePullSecrets: []
 nameOverride: ""
