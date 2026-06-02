@@ -108,7 +108,31 @@ image:
   # have read 0 even on a successful seed). Gate C is load-bearing:
   # bench SCALE=5000 COLD <= 1.05x WARM at every measurement stage;
   # HARD REVERT to 0.30.235 if Gate C fails.
-  tag: "0.30.236"
+  #
+  # 0.30.237 (Stage 1 — boot-scope cohort-parallel seed + Lever A/B/C):
+  # 0.30.236 was HARD REVERTED (helm rev 409 to 0.30.235). F3 mechanism
+  # was sound (Pinned:true at 4 production Put sites), but the boot
+  # prewarm engine path's seedScopeYielding had silently regressed from
+  # the legacy runPIPSeed parallel shape (cohort-parallel errgroup at
+  # GOMAXPROCS — phase1_pip_seed.go:382-387) into nested SERIAL loops at
+  # prewarm_engine_boot.go:217-340. Empirical throughput at 5K-comp
+  # scale was 0.68 puts/s wall-clock; the widget seed loop never even
+  # started inside the 8-min pipGlobalTimeout window. Gate C measured
+  # 44-53% L1 miss on widgets|markdowns / widgets|panels / widgets|buttons
+  # after a 5K bench. Stage 1 RESTORES the legacy parallel shape (NOT
+  # invent a new flat-pool design — predecessor's runPIPSeed is the
+  # proven 30+ ship prior art). Cohorts run as GOMAXPROCS parallel
+  # goroutines; RA/widget iteration inside the cohort stays serial to
+  # bound per-cohort transient bytes. F3 Pinned:true is RETAINED IN
+  # SOURCE (HEAD = 0.30.236; helm rolled back the binary, not the tree)
+  # — Stage 1 ships F3 alongside the parallelism restoration. Lever A:
+  # pipGlobalTimeout converted const→var, reads PREWARM_BOOT_TIMEOUT_
+  # MINUTES (default 8). Lever B: per-cohort progress log so operator
+  # tells "slow but progressing" from "stuck" mid-boot. Lever C: new
+  # snowplow_phase1_seed_units_planned_total expvar so operator can
+  # project ETA from planned vs done. Stage 2 (CRUD triggers) is
+  # DEFERRED to 0.30.238 — Stage 1 alone fixes Gate C.
+  tag: "0.30.237"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -267,5 +291,15 @@ env:
   # Override at install/upgrade time with --set env.CACHE_ENABLED=false to
   # fall back to the 0.30.3 (cache=off) behaviour.
   CACHE_ENABLED: "true"
+
+  # Ship 0.30.237 Stage-1 Lever A — configmap-tunable boot-scope budget.
+  # Reads PREWARM_BOOT_TIMEOUT_MINUTES; defaults to 8 (the 0.30.179 raised
+  # value pinned by phase1_pip_seed.go's pipGlobalTimeout). If a customer
+  # cluster's worst-case unit count (cohorts × harvested {RAs, widgets})
+  # cannot complete inside 8 min under GOMAXPROCS-parallel seeding, raise
+  # this knob (helm upgrade --set env.PREWARM_BOOT_TIMEOUT_MINUTES=15) and
+  # redeploy — bounded recovery without a HARD REVERT. Operator inspects
+  # snowplow_phase1_seed_units_planned_total at /debug/vars to project ETA.
+  PREWARM_BOOT_TIMEOUT_MINUTES: "8"
 
 jwtSignKeySecretName: jwt-sign-key
