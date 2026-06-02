@@ -153,12 +153,21 @@ image:
   # — no cohort × user fan-out (design §1). NEW env CACHE_JQ_MEMO_CAP
   # (default 128 per widget) bounds the Tier 3 memo footprint.
   #
-  # Architect ACK 2026-06-02 (99% leak closed); PM ACK 2026-06-02 (91%
-  # post-deploy confidence). T8 8/8 PASS under -race including
-  # strengthened assertion 3.b (cyberjoker.widgetData differs from
-  # admin.widgetData on the production gate). Closes the architect-
-  # caught widgetData leak class (compositions-list piechart).
-  tag: "0.30.240"
+  # Ship 0.30.241 — architect D.3 §7 seed-loop fix. v4 0.30.240 deploy
+  # exposed a SEED-WINDOW timing defect (NOT a v4 regression — D.1.B
+  # diagnosed as PRE-EXISTING in v3): the engine seed loop iterated
+  # N_cohort × N_RA = 35 × 21 = 735 Puts per boot. Under v4 identity-
+  # free L1 the inner cohort loop is pure waste (same key, last-writer-
+  # wins). 0.30.241 deletes the cohort loop → ONE seedOneRestaction per
+  # RA under SA identity → 21 invocations / GOMAXPROCS ≈ 25-30s wall-
+  # clock until every harvested cell is reachable (vs ~1 hr v3-style).
+  # Mandatory TestBootSeedCoverage_* falsifier locks the cell-collapse
+  # contract into the test suite — feedback_seed_falsifier_required_on_
+  # l1_key_changes codifies the process-level mandate.
+  #
+  # Architect ACK 2026-06-02 (93% post-deploy verify-serve-stale PASS);
+  # PM ACK 2026-06-02 (94% — strongest dual-gate of the 5-ship stream).
+  tag: "0.30.241"
 
 imagePullSecrets: []
 nameOverride: ""
