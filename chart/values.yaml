@@ -130,9 +130,20 @@ image:
   # MINUTES (default 8). Lever B: per-cohort progress log so operator
   # tells "slow but progressing" from "stuck" mid-boot. Lever C: new
   # snowplow_phase1_seed_units_planned_total expvar so operator can
-  # project ETA from planned vs done. Stage 2 (CRUD triggers) is
-  # DEFERRED to 0.30.238 — Stage 1 alone fixes Gate C.
-  tag: "0.30.237"
+  # project ETA from planned vs done.
+  #
+  # Ship 0.30.238 Stage 2 Component A — cohort-set UNION at boot. Closes
+  # the cohort-coverage gap (mid-bench 0.30.237 widget seed covered 5/35
+  # cohorts; cyberjoker absent; customer dispatch missed 1,627 panels +
+  # 3,224 buttons + 764 markdowns post-storm). cohortsFor now unions
+  # EnumerateResourceCohorts(gvr) with EnumerateBindingSetClasses(), so
+  # UAF-only users (cyberjoker + every user whose access flows through
+  # snowplow-internal userAccessFilter rather than a K8s (Cluster)Role
+  # Binding) are included in seed_widgets_by_cohort. Boot scope only.
+  # Pre-positioned with PREWARM_BOOT_TIMEOUT_MINUTES=15 (raised from 8
+  # at 0.30.237) — see env.PREWARM_BOOT_TIMEOUT_MINUTES below for the
+  # HARD CEILING anti-escalation rule.
+  tag: "0.30.238"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -293,13 +304,23 @@ env:
   CACHE_ENABLED: "true"
 
   # Ship 0.30.237 Stage-1 Lever A — configmap-tunable boot-scope budget.
-  # Reads PREWARM_BOOT_TIMEOUT_MINUTES; defaults to 8 (the 0.30.179 raised
-  # value pinned by phase1_pip_seed.go's pipGlobalTimeout). If a customer
-  # cluster's worst-case unit count (cohorts × harvested {RAs, widgets})
-  # cannot complete inside 8 min under GOMAXPROCS-parallel seeding, raise
-  # this knob (helm upgrade --set env.PREWARM_BOOT_TIMEOUT_MINUTES=15) and
-  # redeploy — bounded recovery without a HARD REVERT. Operator inspects
+  # Reads PREWARM_BOOT_TIMEOUT_MINUTES; converted const→var by
+  # phase1_pip_seed.go's pipGlobalTimeout. Operator inspects
   # snowplow_phase1_seed_units_planned_total at /debug/vars to project ETA.
-  PREWARM_BOOT_TIMEOUT_MINUTES: "8"
+  #
+  # Ship 0.30.238 Stage 2 Component A — chart default raised 8 → 15 to
+  # pre-position for the union'd cohort plan. Projected units_planned
+  # ~3,700 (3.4× the 0.30.237 1078). At parallelism=8: optimistic 0.5s/
+  # unit ≈ 3.85 min; realistic 1.5s/unit ≈ 11.6 min; pessimistic 5s/unit
+  # ≈ 38.5 min (the latter exceeds ceiling and triggers HARD REVERT).
+  #
+  # HARD CEILING — anti-escalation rule (design §4.1 line 368-369):
+  # if a future cluster shape exceeds 15 min, the response is HARD REVERT
+  # and re-diagnose. Do NOT raise the chart value further. "Indefinite
+  # timeout escalation" is explicitly EXCLUDED. A per-unit cost
+  # structurally higher than projected means a DIFFERENT defect needs
+  # investigating (upstream LIST regression, RBAC informer sync gap,
+  # etc.), NOT a bigger budget.
+  PREWARM_BOOT_TIMEOUT_MINUTES: "15"
 
 jwtSignKeySecretName: jwt-sign-key
