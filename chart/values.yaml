@@ -50,7 +50,25 @@ image:
   # newPhase1Walker(rc, authnNS, opts...) as the SOLE constructor —
   # rc is REQUIRED at the type level, the compiler enforces every
   # construction site supplies it. Correctness-only, no perf delta.
-  tag: "0.30.232"
+  #
+  # 0.30.233 (S4 cache-invalidation fix): restores the pre-Ship-0.5
+  # CRD-informer → discovery backplane as a SIMPLER additive
+  # side-effect on the existing customresourcedefinitions informer's
+  # AddFunc. Ship 0.5 / 0.30.223 (v6) deleted the CRD informer on the
+  # assumption walker-driven on-demand discovery would cover the
+  # CRD-add path. TRACED defect (S4 ConvergenceTimeout on Path B bench
+  # harness, run-20260602-064642): the walker chain races itself into
+  # a stuck zero-state when a CRD is created at runtime — stage 1 of
+  # compositions-list cached the (then-empty) CRD LIST, stage 2
+  # iterator never reached the templated apiserver path, the
+  # discovery hop never fired, composition CR informer never
+  # registered, piechart served api=0 ui=0 indefinitely. Fix is
+  # mechanism-uniform (predicate IsCRDGVR(gvr), applies to ANY group)
+  # with PM tightenings: bounded worker channel (DiscoverGroupResources
+  # network hop runs OFF informer processor goroutine) +
+  # defer-recover wrappers (malformed CRD object cannot panic-kill
+  # pod). Always-on, no flag.
+  tag: "0.30.233"
 
 imagePullSecrets: []
 nameOverride: ""
