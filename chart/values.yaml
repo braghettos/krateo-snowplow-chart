@@ -143,7 +143,22 @@ image:
   # Pre-positioned with PREWARM_BOOT_TIMEOUT_MINUTES=15 (raised from 8
   # at 0.30.237) — see env.PREWARM_BOOT_TIMEOUT_MINUTES below for the
   # HARD CEILING anti-escalation rule.
-  tag: "0.30.238"
+  #
+  # Ship 0.30.240 — Option C closure of the 5-ship L1-miss-after-CRUD
+  # defect chain. Identity-free L1 + serve-time UAF + Tier 3 per-cohort
+  # JQ memo (design 2026-06-02 §4-§9). Universe collapses from O(users
+  # × widgets × group-set-tuples) to O(widgets) — the walker-bounded
+  # shape. PREWARM_BOOT_TIMEOUT_MINUTES dropped 15 → 8 (chart default
+  # restored) because v4 boot enumerates ONLY identity-free seed tuples
+  # — no cohort × user fan-out (design §1). NEW env CACHE_JQ_MEMO_CAP
+  # (default 128 per widget) bounds the Tier 3 memo footprint.
+  #
+  # Architect ACK 2026-06-02 (99% leak closed); PM ACK 2026-06-02 (91%
+  # post-deploy confidence). T8 8/8 PASS under -race including
+  # strengthened assertion 3.b (cyberjoker.widgetData differs from
+  # admin.widgetData on the production gate). Closes the architect-
+  # caught widgetData leak class (compositions-list piechart).
+  tag: "0.30.240"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -309,18 +324,34 @@ env:
   # snowplow_phase1_seed_units_planned_total at /debug/vars to project ETA.
   #
   # Ship 0.30.238 Stage 2 Component A — chart default raised 8 → 15 to
-  # pre-position for the union'd cohort plan. Projected units_planned
-  # ~3,700 (3.4× the 0.30.237 1078). At parallelism=8: optimistic 0.5s/
-  # unit ≈ 3.85 min; realistic 1.5s/unit ≈ 11.6 min; pessimistic 5s/unit
-  # ≈ 38.5 min (the latter exceeds ceiling and triggers HARD REVERT).
+  # pre-position for the union'd cohort plan (~3,700 seed units at
+  # 3.4× the 0.30.237 1078).
+  #
+  # Ship 0.30.240 — DROPPED BACK TO 8. The v4 identity-free L1 universe
+  # is walker-bounded (design §1): seed cardinality = O(widgets +
+  # restactions) ≈ 50-100 cells at customer scale (NOT cohort × user
+  # product). At GOMAXPROCS=8 ≈ 50 ms/resolve: ~1-3 seconds boot
+  # prewarm at customer scale; ~5 min at the 50K cluster scale per
+  # feedback_compositions_north_star_views. 8-min default has ample
+  # headroom; 15-min was specifically for the now-removed cohort
+  # multiplication factor.
   #
   # HARD CEILING — anti-escalation rule (design §4.1 line 368-369):
   # if a future cluster shape exceeds 15 min, the response is HARD REVERT
   # and re-diagnose. Do NOT raise the chart value further. "Indefinite
-  # timeout escalation" is explicitly EXCLUDED. A per-unit cost
-  # structurally higher than projected means a DIFFERENT defect needs
-  # investigating (upstream LIST regression, RBAC informer sync gap,
-  # etc.), NOT a bigger budget.
-  PREWARM_BOOT_TIMEOUT_MINUTES: "15"
+  # timeout escalation" is explicitly EXCLUDED.
+  PREWARM_BOOT_TIMEOUT_MINUTES: "8"
+
+  # Ship 0.30.240 — Tier 3 per-cohort JQ output memo cap (design §9.14
+  # + Tightening 5). The memo caches widgetdatatemplate.Resolve output
+  # keyed by (widgetCellKey, cohortKey, rbacGen). Singleflight-guarded
+  # populate prevents N concurrent /call from the same cohort × widget
+  # × rbacGen running N JQ passes (Tightening 3).
+  #
+  # Sized for the customer-realistic cohort cardinality (~tens of
+  # cohorts at admin scale). Per-widget cap; total entries top out at
+  # ~3,840 across all widget cells (~30 widgets × 128) at default.
+  # cap <= 0 disables the cap entirely (escape hatch).
+  CACHE_JQ_MEMO_CAP: "128"
 
 jwtSignKeySecretName: jwt-sign-key
