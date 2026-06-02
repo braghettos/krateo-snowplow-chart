@@ -68,7 +68,24 @@ image:
   # network hop runs OFF informer processor goroutine) +
   # defer-recover wrappers (malformed CRD object cannot panic-kill
   # pod). Always-on, no flag.
-  tag: "0.30.233"
+  #
+  # 0.30.235 (UAF layering fix): Phase 6 #126 first canonical run on
+  # 0.30.233 hit S4 ConvergenceTimeout for cyberjoker (api=0 ui=0
+  # expected=1 cluster=20). Live-cluster TRACE pinpointed a LAYERING
+  # ordering bug: compositions-list RA stage filter projects items
+  # without .metadata; UAF namespaceFrom=".metadata.namespace" then
+  # runs on the projected shape, evalJQString returns "",
+  # EvaluateRBAC(verb=list, ns="") becomes a cluster-scope check, and
+  # narrow-RBAC users (cyberjoker) are denied (no cluster-scope grant).
+  # Admin masks the bug via cluster-admin CRB. Fix moves UAF refilter
+  # INSIDE jsonHandlerCore, BEFORE the stage filter projects items —
+  # the refilter sees the raw K8s envelope (with .metadata) and
+  # EvaluateRBAC receives the correct namespace. Post-g.Wait()
+  # applyUserAccessFilter callsite DELETED; new call is per-worker
+  # via applyUserAccessFilterOnPig. Mechanism-uniform across every
+  # RA + identity (no per-RA carve-out). Permanent regression gate
+  # at internal/resolvers/restactions/api/refilter_layering_test.go.
+  tag: "0.30.235"
 
 imagePullSecrets: []
 nameOverride: ""
