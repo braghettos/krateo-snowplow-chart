@@ -85,7 +85,30 @@ image:
   # via applyUserAccessFilterOnPig. Mechanism-uniform across every
   # RA + identity (no per-RA carve-out). Permanent regression gate
   # at internal/resolvers/restactions/api/refilter_layering_test.go.
-  tag: "0.30.235"
+  #
+  # 0.30.236 (L1 Pinned=true for widgets/restactions cohort cells):
+  # Phase 6 #126 on 0.30.235 still showed S6 Dashboard COLD 2.02x WARM
+  # (L1-miss-after-mutation defect). Architect TRACE: widgets and
+  # restactions cohort cells written Pinned:false at 4 production Put
+  # sites; the 1.5 GiB resident region sat empty while customer-facing
+  # cells lived in the transient LRU. Composition-CRUD storm produced
+  # >800K dirty-mark enqueues; refresher re-Puts of OTHER cohorts
+  # evicted target cells via LRU; refresher_skipped_no_entry=126,933
+  # measured on 0.30.235 — refresher dequeued keys whose entries had
+  # already been LRU-evicted. Fix sets Pinned:true at the 4 Put sites
+  # (phase1_pip_seed.go seedOneRestaction + seedOneWidget; restactions.go
+  # + widgets.go per-user fallbacks; resolve_populate.go refresher
+  # re-populate via T1 named CacheEntryClass{Widgets,Restactions}
+  # constants per feedback_no_special_cases). Pin-honour at
+  # resolved.go:761-773 already degrades to transient on resident
+  # overflow — no OOM path. T8 expvar surface (resident_demote_total +
+  # companions) lets the gate observe silent demote. Side-fix to
+  # prewarm_engine_boot.go bumps pipSeed* counters on the engine path
+  # (legacy seedCohort path bumped, engine path didn't — Gate A would
+  # have read 0 even on a successful seed). Gate C is load-bearing:
+  # bench SCALE=5000 COLD <= 1.05x WARM at every measurement stage;
+  # HARD REVERT to 0.30.235 if Gate C fails.
+  tag: "0.30.236"
 
 imagePullSecrets: []
 nameOverride: ""
