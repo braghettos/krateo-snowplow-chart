@@ -5,10 +5,12 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.3
     # Protect against accidental deletion/replacement on `helm upgrade`/`helm uninstall`.
-    # The CRD is also owned by a standalone `snowplow-crd` Helm release on production
-    # clusters; without this annotation, upgrading the parent `snowplow` chart would
-    # re-template + reapply (or worse, delete) this CRD, garbage-collecting every
-    # RESTAction and CompositionDefinition cluster-wide.
+    # Without this annotation, a `helm uninstall snowplow` or chart-side
+    # template removal would delete this CRD, garbage-collecting every
+    # RESTAction and CompositionDefinition cluster-wide. Previously this
+    # annotation also defended against the parallel snowplow-crd subchart
+    # (deleted in Ship S.1 chart 0.30.243); the load-bearing reason is now
+    # purely main-chart-uninstall protection.
     helm.sh/resource-policy: keep
   name: restactions.templates.krateo.io
 spec:
