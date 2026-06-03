@@ -85,7 +85,23 @@ image:
   # via applyUserAccessFilterOnPig. Mechanism-uniform across every
   # RA + identity (no per-RA carve-out). Permanent regression gate
   # at internal/resolvers/restactions/api/refilter_layering_test.go.
-  tag: "0.30.235"
+  #
+  # 0.30.245 (H.c-layered + Ship K bundle): supersedes orphaned 0.30.242.
+  # H.c-layered architecture (per-(layer, BindingUID, scope) cell-key
+  # shape replaces v3 cohort hash) + Ship K UAF resourcesFrom multi-
+  # stage scope fix. Resolves: 6-revert L1/RBAC chain (0.30.236 →
+  # 0.30.241) + 0.30.235's preserved compositions-list 0-count
+  # regression (UAF refilter's resolveUAFResources was called with
+  # per-stage `pig` scope instead of full resolver `dict`; multi-stage
+  # resourcesFrom expressions referencing upstream `.crds` always
+  # resolved to [] → fail-closed dropped every item). Dual-gate ACK:
+  # original H.c-layered 92%/91%, Ship K bundle 94%/93%. Falsifier
+  # suite F1-F8 + Gap 1 + Gap 3 all PASS. Empirical-first cap policy:
+  # RESOLVED_CACHE_MAX_RESIDENT_BYTES preserved at the rev 419 values
+  # override (1.5 GiB on live deploy) — no chart-side cap change in
+  # this bump. Phase 5b decides cap based on observed per-binding cell
+  # RSS post-deploy.
+  tag: "0.30.245"
 
 imagePullSecrets: []
 nameOverride: ""
