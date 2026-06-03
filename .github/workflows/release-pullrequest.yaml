@@ -2,6 +2,10 @@ name: release-pullrequest
 
 # Lint-only check for PRs. Replaces the upstream workflow which pushed
 # a preview to charts.krateo.io via gh-pages.
+#
+# Ship S.1 (chart 0.30.243): single-chart layout — only chart/ is linted.
+# The previous crd-chart subchart was deleted; its CRD moved into
+# chart/templates/templates.krateo.io_restactions.yaml.
 
 on:
   pull_request:
@@ -25,17 +29,6 @@ jobs:
           # Lint requires concrete versions. Use 0.0.0 as a throwaway.
           sed -i "s/CHART_VERSION/0.0.0/g" chart/Chart.yaml
           sed -i "s/APP_VERSION/0.0.0/g"   chart/Chart.yaml
-          sed -i "s/CHART_VERSION/0.0.0/g" crd-chart/Chart.yaml
-
-      - name: Helm lint (crd-chart)
-        run: helm lint ./crd-chart
-
-      - name: Build chart deps from local crd-chart
-        run: |
-          helm package ./crd-chart --destination /tmp/charts
-          mkdir -p ./chart/charts
-          cp /tmp/charts/snowplow-crd-0.0.0.tgz ./chart/charts/
-          helm dependency build ./chart || true
 
       - name: Helm lint (chart)
         run: helm lint ./chart

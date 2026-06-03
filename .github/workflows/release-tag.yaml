@@ -1,11 +1,16 @@
 name: release-tag
 
-# Builds both the snowplow chart and its snowplow-crd dependency as OCI
-# artifacts and pushes them to ghcr.io/braghettos. Triggered on semver
-# tag pushes (e.g. 0.20.5). The tag value is used as BOTH the chart
-# version (for chart/Chart.yaml and crd-chart/Chart.yaml) and the
-# snowplow app version (appVersion in chart/Chart.yaml) — tag and push
-# a new semver each time you want a new chart release.
+# Builds the snowplow chart as an OCI artifact and pushes it to
+# ghcr.io/braghettos. Triggered on semver tag pushes (e.g. 0.20.5). The
+# tag value is used as BOTH the chart version (for chart/Chart.yaml) and
+# the snowplow app version (appVersion in chart/Chart.yaml) — tag and
+# push a new semver each time you want a new chart release.
+#
+# Ship S.1 (chart 0.30.243) collapsed the previous two-chart layout
+# (chart/ + crd-chart/) into a single chart. The RESTAction CRD now
+# lives at chart/templates/templates.krateo.io_restactions.yaml with a
+# helm.sh/resource-policy: keep annotation. The standalone snowplow-crd
+# OCI artifact is no longer produced.
 
 on:
   push:
@@ -43,27 +48,8 @@ jobs:
         run: |
           sed -i "s/CHART_VERSION/${{ steps.versions.outputs.chart }}/g" chart/Chart.yaml
           sed -i "s/APP_VERSION/${{ steps.versions.outputs.app }}/g"     chart/Chart.yaml
-          sed -i "s/CHART_VERSION/${{ steps.versions.outputs.chart }}/g" crd-chart/Chart.yaml
           echo "--- chart/Chart.yaml ---"
           cat chart/Chart.yaml
-          echo "--- crd-chart/Chart.yaml ---"
-          cat crd-chart/Chart.yaml
-
-      - name: Helm lint (crd-chart)
-        run: helm lint ./crd-chart
-
-      - name: Package crd-chart
-        run: |
-          helm package ./crd-chart --destination ./build
-          ls -la ./build
-
-      - name: Build chart dependencies from local crd-chart
-        run: |
-          # The main chart depends on snowplow-crd via file://../crd-chart
-          # helm dependency build resolves it by picking up the local .tgz
-          # produced above.
-          helm dependency build ./chart
-          ls -la ./chart/charts
 
       - name: Helm lint (chart)
         run: helm lint ./chart
@@ -79,17 +65,11 @@ jobs:
             --username "${{ github.actor }}" \
             --password-stdin
 
-      - name: Push crd-chart OCI artifact
-        run: |
-          helm push ./build/snowplow-crd-${{ steps.versions.outputs.chart }}.tgz \
-            oci://${{ env.REGISTRY }}/${{ env.ORG }}/charts
-
       - name: Push chart OCI artifact
         run: |
           helm push ./build/snowplow-${{ steps.versions.outputs.chart }}.tgz \
             oci://${{ env.REGISTRY }}/${{ env.ORG }}/charts
 
-      - name: Show resulting OCI refs
+      - name: Show resulting OCI ref
         run: |
-          echo "snowplow chart:     oci://${{ env.REGISTRY }}/${{ env.ORG }}/charts/snowplow:${{ steps.versions.outputs.chart }}"
-          echo "snowplow-crd chart: oci://${{ env.REGISTRY }}/${{ env.ORG }}/charts/snowplow-crd:${{ steps.versions.outputs.chart }}"
+          echo "snowplow chart: oci://${{ env.REGISTRY }}/${{ env.ORG }}/charts/snowplow:${{ steps.versions.outputs.chart }}"

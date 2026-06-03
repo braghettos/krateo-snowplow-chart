@@ -1,0 +1,9 @@
+# Helm dependency build artifacts. Ship S.1 (chart 0.30.243) eliminated the
+# crd-chart subchart, so these are now obsolete; keep them ignored in case
+# helm dep build is ever run accidentally against a stray dependencies block.
+chart/Chart.lock
+chart/charts/
+
+# Packaged chart output (helm package destination)
+build/
+*.tgz

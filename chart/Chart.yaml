@@ -23,7 +23,11 @@ version: CHART_VERSION
 # It is recommended to use it with quotes.
 appVersion: APP_VERSION
 
-dependencies:
-  - name: snowplow-crd
-    version: CHART_VERSION
-    repository: file://../crd-chart
+# Ship S.1 (chart 0.30.243): the RESTAction CRD is now owned directly by this
+# main chart at chart/templates/templates.krateo.io_restactions.yaml. The
+# previous snowplow-crd subchart (file://../crd-chart) has been deleted to
+# eliminate the parallel ownership path that drifted out of sync with the
+# snowplow source generator. CRD now ships lockstep with the snowplow binary
+# in a single chart release. helm.sh/resource-policy: keep on the CRD itself
+# preserves the previous safety guarantee against accidental deletion on
+# `helm upgrade`/`helm uninstall`.
