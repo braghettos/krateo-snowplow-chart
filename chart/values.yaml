@@ -101,7 +101,27 @@ image:
   # override (1.5 GiB on live deploy) — no chart-side cap change in
   # this bump. Phase 5b decides cap based on observed per-binding cell
   # RSS post-deploy.
-  tag: "0.30.245"
+  #
+  # 0.30.246 (Ship L — CRD lifecycle bytesObject fix): image-tag-only
+  # bump. Resolves the Ship 0.30.233 silent type-assertion regression
+  # at internal/cache/crd_discovery_side_effect.go:248 — the CRD-ADD
+  # discovery bridge type-asserted obj.(*unstructured.Unstructured)
+  # but post Ship H5 the customresourcedefinitions informer delivers
+  # *bytesObject via the streaming-listwatch default. Silent soft-skip
+  # for 13 ships (0.30.233 → 0.30.245) → per-resource composition
+  # informer never spawned on clean-cluster install-burst → L1 piechart
+  # cell stuck at {"title":"0"}. Phase 6 S4 ConvergenceTimeout (task
+  # #194) was the empirical catch. Ship L: 6-commit bisectable chain
+  # (falsifiers-first ADD+UPDATE+DELETE+tombstone, decodeBytesObject
+  # routing for all three lifecycle paths, snowplow_crd_discovery
+  # expvar publication closing followup #143, no-unchecked-unstructured-
+  # assert lint rule enforcing the regression class going forward).
+  # Dual-gate ACK: architect 96%, PM 92%. OCI digest (linux/amd64):
+  # sha256:a002fb1bd3e73cf35aca0a010a56eeeb87f71bfa1f7bc35134a19732e26bbab0
+  # NO env-var changes, NO CRD-template changes, NO chart-structure
+  # changes — pure image.tag bump. RESOLVED_CACHE_MAX_RESIDENT_BYTES
+  # preserved at the rev 421 values override (1.5 GiB live).
+  tag: "0.30.246"
 
 imagePullSecrets: []
 nameOverride: ""
