@@ -14,7 +14,17 @@ name: release-tag
 
 on:
   push:
-    tags: ["[0-9]+.[0-9]+.[0-9]+"]
+    # Match both ship tags (e.g. 0.30.246) AND diagnostic pre-release
+    # tags (e.g. 0.30.247-pre1, 0.30.247-pre2). The -pre suffix marks
+    # diagnostic-only chart bumps that lockstep with a diagnostic
+    # snowplow image (NOT a customer-facing release) — same chart
+    # build path, same OCI publishing. See 0.30.247-pre1 (addfunc.entry
+    # Detailed-funcs instrumentation lockstep, task #194 HARD gate #1)
+    # for the introducing precedent. The snowplow repo's release-tag
+    # workflow was extended with the same pattern in lockstep.
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+-pre[0-9]+"
 
 env:
   REGISTRY: ghcr.io
