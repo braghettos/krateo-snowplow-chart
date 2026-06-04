@@ -121,7 +121,36 @@ image:
   # NO env-var changes, NO CRD-template changes, NO chart-structure
   # changes — pure image.tag bump. RESOLVED_CACHE_MAX_RESIDENT_BYTES
   # preserved at the rev 421 values override (1.5 GiB live).
-  tag: "0.30.246"
+  #
+  # 0.30.247-pre1 (DIAGNOSTIC ONLY — NOT a customer-facing ship):
+  # image-tag-only bump for the addfunc.entry instrumentation build.
+  # Phase 6 S4 retrigger on Ship L (0.30.246) blocked at
+  # ConvergenceTimeout; PM A-fix root-cause empirical-confirm gate
+  # #1 of 5 requires capturing a production log corpus of the
+  # (is_in_initial_list, syncch_closed, has_synced) discriminator
+  # triple BEFORE A-fix coding lands. The pre1 build migrates
+  # depEventHandlers to clientcache.ResourceEventHandlerDetailedFuncs
+  # (vendored at client-go@v0.33.0/tools/cache/controller.go:278-282)
+  # which plumbs isInInitialList through OnAdd — the ONLY safe-ship
+  # discriminator per architect §11 reflector trace of DeltaFIFO.Pop
+  # (HasSynced cannot distinguish replay-tail from post-sync because
+  # isInInitialList is captured BEFORE initialPopulationCount is
+  # decremented). Pre1 LOGS the 4-field tuple via slog.Debug but does
+  # NOT change drop semantics — production behaviour identical to
+  # 0.30.246 with respect to which ADDs propagate. To activate the
+  # instrumentation, deploy pre1 with --set env.DEBUG=true (chart's
+  # env.DEBUG=false default → snowplow CLI flag debugOn=false →
+  # slog.LevelInfo → slog.Debug filtered out silently). DEBUG=true
+  # flips the runtime log handler to slog.LevelDebug at main.go:101.
+  # OCI digest (linux/amd64):
+  # sha256:38dac20269ed95ec7dd197f1089a9bf39f417f08c49df2c4c438cd6af440f2c3
+  # PM/architect mini-dual-gate SKIPPED (diagnostic-only artifact-
+  # capture build; not a customer ship; architect §11 trace and PM
+  # gate-design ACK already gated the design upstream). NOT TO BE
+  # TREATED AS A CUSTOMER-FACING RELEASE. The next-tag ship (after
+  # corpus capture + architect A-fix confirmation) is
+  # 0.30.247 (no -pre suffix).
+  tag: "0.30.247-pre1"
 
 imagePullSecrets: []
 nameOverride: ""
