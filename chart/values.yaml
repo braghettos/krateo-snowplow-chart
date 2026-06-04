@@ -150,7 +150,44 @@ image:
   # TREATED AS A CUSTOMER-FACING RELEASE. The next-tag ship (after
   # corpus capture + architect A-fix confirmation) is
   # 0.30.247 (no -pre suffix).
-  tag: "0.30.247-pre1"
+  #
+  # 0.30.247 (Ship 2 Stage 2 — scopeKindGVRDiscovered re-prewarm).
+  # CUSTOMER-FACING SHIP. Closes the canonical S4 admin-path defect
+  # (cold-after-mutation per Diego's Option A on #219). Root cause
+  # TRACED to internal/resolvers/restactions/api/resolve.go:377-381:
+  # the empty `crds.items[]` iterator short-circuit skips BOTH
+  # lazyRegisterInnerCallPaths (resolve.go:444) AND the dep-recording
+  # block (resolve.go:567-585), leaving admin's compositions-list
+  # cell (and every cohort's per-binding cell) without a dep edge
+  # against the future composition GVR. When the CRD is later created
+  # the GVR discovery fires OnResourceTypeAvailable with
+  # `l1_keys_dirty_marked:0` (the forward index has no buckets keyed
+  # by the new GVR), so subsequent composition CR ADD events
+  # silently match 0 in onChange → never emit cache_event.consumed
+  # → cells stay HIT, value-stale.
+  #
+  # FIX (~395 LOC across 6 commits): adds 2 calls to discovery_lookup.go's
+  # `if added` branch — AddNavigatedGVR(gvr) [closes RC-1 P0 narrow-
+  # cohort silent skip at 1000-user scale] + notifyGVRDiscoveredForReprewarm(gvr)
+  # [fires the cache→engine hook] — and extends the existing Ship 1
+  # prewarm engine with a new scopeKindGVRDiscovered scope kind +
+  # per-GVR-keyed dedup queue + a sub-handler that invokes the SAME
+  # rePrewarmBoot core to re-walk + re-enumerate cohorts (now reading
+  # the freshly-widened BindingsByGVR index) + re-seed each cohort.
+  # The re-resolve under each cohort identity now has non-empty
+  # `crds.items[]` → iterator produces non-empty `tmp[]` →
+  # lazyRegisterInnerCallPaths + the dep-recording block BOTH execute
+  # → edge recorded → subsequent CR ADD events propagate via the
+  # normal OnAdd→onChange→dirty-mark→refresher path.
+  #
+  # NO env-var changes, NO CRD-template changes, NO chart-structure
+  # changes — pure image.tag bump. RESOLVED_CACHE_MAX_RESIDENT_BYTES
+  # preserved at the rev 421 values override (1.5 GiB live).
+  # PrewarmEnabled() gate honoured — when PREWARM_ENABLED=false the
+  # engine is inert and the hook has no consumer (transparent
+  # fallback to cold-path-on-first-call). Per
+  # project_single_cache_flag_direction.
+  tag: "0.30.247"
 
 imagePullSecrets: []
 nameOverride: ""
