@@ -1,0 +1,724 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "title": "Snowplow",
+  "description": "Krateo PlatformOps Snowplow blueprint — full-coverage schema (chart 0.30.249).",
+  "additionalProperties": false,
+  "properties": {
+    "replicaCount": {
+      "type": "integer",
+      "title": "Replica Count",
+      "description": "Number of snowplow pod replicas.",
+      "default": 1
+    },
+    "progressDeadlineSeconds": {
+      "type": "integer",
+      "title": "Progress Deadline Seconds",
+      "description": "Deployment progressDeadlineSeconds; safety window for cold informer sync.",
+      "default": 1200
+    },
+    "image": {
+      "type": "object",
+      "title": "Image",
+      "description": "Container image settings.",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "title": "Repository",
+          "description": "Container image repository.",
+          "default": "ghcr.io/braghettos/snowplow"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "title": "Pull Policy",
+          "description": "Image pull policy.",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "Always"
+        },
+        "tag": {
+          "type": "string",
+          "title": "Tag",
+          "description": "Pinned snowplow app image tag (decoupled from chart version).",
+          "default": "0.25.301"
+        }
+      }
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "title": "Image Pull Secrets",
+      "description": "References to secrets for pulling images from private registries.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the image pull secret."
+          }
+        }
+      },
+      "default": []
+    },
+    "nameOverride": {
+      "type": "string",
+      "title": "Name Override",
+      "description": "Override the chart name used in resource names.",
+      "default": ""
+    },
+    "fullnameOverride": {
+      "type": "string",
+      "title": "Fullname Override",
+      "description": "Override the fully qualified resource name.",
+      "default": ""
+    },
+    "serviceAccount": {
+      "type": "object",
+      "title": "Service Account",
+      "description": "Service account configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "title": "Create",
+          "description": "Whether to create a service account.",
+          "default": true
+        },
+        "automount": {
+          "type": "boolean",
+          "title": "Automount",
+          "description": "Automatically mount the service account API token.",
+          "default": true
+        },
+        "annotations": {
+          "type": "object",
+          "title": "Annotations",
+          "description": "Annotations to add to the service account.",
+          "additionalProperties": true,
+          "default": {}
+        },
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "Name of the service account to use; generated if empty and create is true.",
+          "default": ""
+        }
+      }
+    },
+    "podAnnotations": {
+      "type": "object",
+      "title": "Pod Annotations",
+      "description": "Annotations to add to the pod.",
+      "additionalProperties": true,
+      "default": {}
+    },
+    "podLabels": {
+      "type": "object",
+      "title": "Pod Labels",
+      "description": "Labels to add to the pod.",
+      "additionalProperties": true,
+      "default": {}
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "title": "Pod Security Context",
+      "description": "Pod-level security context.",
+      "additionalProperties": true,
+      "default": {}
+    },
+    "securityContext": {
+      "type": "object",
+      "title": "Security Context",
+      "description": "Container-level security context.",
+      "additionalProperties": true,
+      "default": {}
+    },
+    "service": {
+      "type": "object",
+      "title": "Service",
+      "description": "Kubernetes Service configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "Type",
+          "description": "Service type.",
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "default": "LoadBalancer"
+        },
+        "port": {
+          "type": "integer",
+          "title": "Port",
+          "description": "Service port exposing the main http listener.",
+          "default": 8081
+        }
+      }
+    },
+    "probePort": {
+      "type": "integer",
+      "title": "Probe Port",
+      "description": "Dedicated kubelet-probe listener port; 0 disables it and falls back to the main port.",
+      "default": 8082
+    },
+    "ingress": {
+      "type": "object",
+      "title": "Ingress",
+      "description": "Ingress configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enabled",
+          "description": "Enable creation of an Ingress resource.",
+          "default": false
+        },
+        "className": {
+          "type": "string",
+          "title": "Class Name",
+          "description": "IngressClass name.",
+          "default": ""
+        },
+        "annotations": {
+          "type": "object",
+          "title": "Annotations",
+          "description": "Annotations to add to the Ingress.",
+          "additionalProperties": true,
+          "default": {}
+        },
+        "hosts": {
+          "type": "array",
+          "title": "Hosts",
+          "description": "Ingress host rules.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "host": {
+                "type": "string",
+                "title": "Host",
+                "description": "Hostname for the rule."
+              },
+              "paths": {
+                "type": "array",
+                "title": "Paths",
+                "description": "Path rules for the host.",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "title": "Path",
+                      "description": "URL path."
+                    },
+                    "pathType": {
+                      "type": "string",
+                      "title": "Path Type",
+                      "description": "Kubernetes Ingress pathType."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": [
+            {
+              "host": "chart-example.local",
+              "paths": [
+                {
+                  "path": "/",
+                  "pathType": "ImplementationSpecific"
+                }
+              ]
+            }
+          ]
+        },
+        "tls": {
+          "type": "array",
+          "title": "TLS",
+          "description": "TLS configuration for the Ingress.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "default": []
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "title": "Resources",
+      "description": "Compute resource requests and limits.",
+      "additionalProperties": false,
+      "properties": {
+        "limits": {
+          "type": "object",
+          "title": "Limits",
+          "description": "Resource limits.",
+          "additionalProperties": true,
+          "properties": {
+            "cpu": {
+              "type": ["string", "integer"],
+              "title": "CPU",
+              "description": "CPU limit.",
+              "default": 4
+            },
+            "memory": {
+              "type": "string",
+              "title": "Memory",
+              "description": "Memory limit.",
+              "default": "8Gi"
+            }
+          },
+          "default": {
+            "cpu": 4,
+            "memory": "8Gi"
+          }
+        },
+        "requests": {
+          "type": "object",
+          "title": "Requests",
+          "description": "Resource requests.",
+          "additionalProperties": true,
+          "properties": {
+            "cpu": {
+              "type": ["string", "integer"],
+              "title": "CPU",
+              "description": "CPU request.",
+              "default": 2
+            },
+            "memory": {
+              "type": "string",
+              "title": "Memory",
+              "description": "Memory request.",
+              "default": "4Gi"
+            }
+          },
+          "default": {
+            "cpu": 2,
+            "memory": "4Gi"
+          }
+        }
+      }
+    },
+    "startupProbe": {
+      "type": "object",
+      "title": "Startup Probe",
+      "description": "Startup probe configuration (targets the dedicated probe port).",
+      "additionalProperties": true,
+      "properties": {
+        "httpGet": {
+          "type": "object",
+          "title": "HTTP Get",
+          "description": "HTTP GET action for the probe.",
+          "additionalProperties": true,
+          "properties": {
+            "path": {
+              "type": "string",
+              "title": "Path",
+              "description": "Path to probe.",
+              "default": "/health"
+            },
+            "port": {
+              "type": ["string", "integer"],
+              "title": "Port",
+              "description": "Port (name or number) to probe.",
+              "default": "probe"
+            }
+          }
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold",
+          "description": "Consecutive failures before giving up.",
+          "default": 36
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period Seconds",
+          "description": "How often to perform the probe.",
+          "default": 10
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout Seconds",
+          "description": "Probe timeout.",
+          "default": 3
+        }
+      }
+    },
+    "livenessProbe": {
+      "type": "object",
+      "title": "Liveness Probe",
+      "description": "Liveness probe configuration (targets the dedicated probe port).",
+      "additionalProperties": true,
+      "properties": {
+        "httpGet": {
+          "type": "object",
+          "title": "HTTP Get",
+          "description": "HTTP GET action for the probe.",
+          "additionalProperties": true,
+          "properties": {
+            "path": {
+              "type": "string",
+              "title": "Path",
+              "description": "Path to probe.",
+              "default": "/health"
+            },
+            "port": {
+              "type": ["string", "integer"],
+              "title": "Port",
+              "description": "Port (name or number) to probe.",
+              "default": "probe"
+            }
+          }
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period Seconds",
+          "description": "How often to perform the probe.",
+          "default": 10
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout Seconds",
+          "description": "Probe timeout.",
+          "default": 3
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold",
+          "description": "Consecutive failures before restart.",
+          "default": 5
+        }
+      }
+    },
+    "readinessProbe": {
+      "type": "object",
+      "title": "Readiness Probe",
+      "description": "Readiness probe configuration (targets the dedicated probe port).",
+      "additionalProperties": true,
+      "properties": {
+        "httpGet": {
+          "type": "object",
+          "title": "HTTP Get",
+          "description": "HTTP GET action for the probe.",
+          "additionalProperties": true,
+          "properties": {
+            "path": {
+              "type": "string",
+              "title": "Path",
+              "description": "Path to probe.",
+              "default": "/ready"
+            },
+            "port": {
+              "type": ["string", "integer"],
+              "title": "Port",
+              "description": "Port (name or number) to probe.",
+              "default": "probe"
+            }
+          }
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period Seconds",
+          "description": "How often to perform the probe.",
+          "default": 5
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout Seconds",
+          "description": "Probe timeout.",
+          "default": 3
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold",
+          "description": "Consecutive failures before marking not ready.",
+          "default": 3
+        }
+      }
+    },
+    "autoscaling": {
+      "type": "object",
+      "title": "Autoscaling",
+      "description": "HorizontalPodAutoscaler configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enabled",
+          "description": "Enable autoscaling via HPA.",
+          "default": false
+        },
+        "minReplicas": {
+          "type": "integer",
+          "title": "Min Replicas",
+          "description": "Minimum number of replicas.",
+          "default": 1
+        },
+        "maxReplicas": {
+          "type": "integer",
+          "title": "Max Replicas",
+          "description": "Maximum number of replicas.",
+          "default": 100
+        },
+        "targetCPUUtilizationPercentage": {
+          "type": "integer",
+          "title": "Target CPU Utilization Percentage",
+          "description": "Target average CPU utilization to scale on.",
+          "default": 80
+        }
+      }
+    },
+    "args": {
+      "type": "array",
+      "title": "Args",
+      "description": "Command-line args for the snowplow container.",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "volumes": {
+      "type": "array",
+      "title": "Volumes",
+      "description": "Additional pod volumes beyond the chart-managed jq-modules ConfigMap.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Volume name."
+          }
+        }
+      },
+      "default": [
+        {
+          "name": "cache-warmup-config",
+          "configMap": {
+            "name": "snowplow-cache-warmup",
+            "defaultMode": 420
+          }
+        },
+        {
+          "name": "frontend-config",
+          "configMap": {
+            "name": "frontend-config-vars",
+            "optional": true
+          }
+        }
+      ]
+    },
+    "volumeMounts": {
+      "type": "array",
+      "title": "Volume Mounts",
+      "description": "Additional container volume mounts.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the volume to mount."
+          },
+          "mountPath": {
+            "type": "string",
+            "title": "Mount Path",
+            "description": "Path at which to mount the volume."
+          },
+          "readOnly": {
+            "type": "boolean",
+            "title": "Read Only",
+            "description": "Mount the volume read-only."
+          }
+        }
+      },
+      "default": [
+        {
+          "name": "cache-warmup-config",
+          "mountPath": "/etc/snowplow",
+          "readOnly": true
+        },
+        {
+          "name": "frontend-config",
+          "mountPath": "/etc/frontend-config",
+          "readOnly": true
+        }
+      ]
+    },
+    "extraEnvFrom": {
+      "type": "array",
+      "title": "Extra Env From",
+      "description": "Additional envFrom entries appended to the chart-managed ConfigMap and jwt-sign-key Secret.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "default": [
+        {
+          "configMapRef": {
+            "name": "snowplow-api-override",
+            "optional": true
+          }
+        }
+      ]
+    },
+    "initContainers": {
+      "type": "array",
+      "title": "Init Containers",
+      "description": "Init containers for the pod.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "nodeSelector": {
+      "type": "object",
+      "title": "Node Selector",
+      "description": "Node selector for pod scheduling.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {}
+    },
+    "tolerations": {
+      "type": "array",
+      "title": "Tolerations",
+      "description": "Pod tolerations for scheduling onto tainted nodes.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "affinity": {
+      "type": "object",
+      "title": "Affinity",
+      "description": "Pod affinity/anti-affinity rules.",
+      "additionalProperties": true,
+      "default": {}
+    },
+    "env": {
+      "type": "object",
+      "title": "Env",
+      "description": "Env vars rendered into the chart's snowplow ConfigMap and consumed via envFrom.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "properties": {
+        "DEBUG": {
+          "type": "string",
+          "title": "DEBUG",
+          "description": "Enable debug logging.",
+          "default": "false"
+        },
+        "BLIZZARD": {
+          "type": "string",
+          "title": "BLIZZARD",
+          "description": "Blizzard feature toggle.",
+          "default": "false"
+        },
+        "SKIP": {
+          "type": "string",
+          "title": "SKIP",
+          "description": "Skip feature toggle.",
+          "default": "false"
+        },
+        "JQ_MODULES_PATH": {
+          "type": "string",
+          "title": "JQ Modules Path",
+          "description": "Path where jq custom modules are mounted.",
+          "default": "/jq-modules"
+        },
+        "GOMEMLIMIT": {
+          "type": "string",
+          "title": "GOMEMLIMIT",
+          "description": "Go soft memory limit; must be below the container memory limit.",
+          "default": "7GiB"
+        },
+        "GOGC": {
+          "type": "string",
+          "title": "GOGC",
+          "description": "Go garbage collector target percentage.",
+          "default": "50"
+        },
+        "CACHE_ENABLED": {
+          "type": "string",
+          "title": "Cache Enabled",
+          "description": "Enable the in-process MemCache.",
+          "default": "true"
+        },
+        "OTEL_ENABLED": {
+          "type": "string",
+          "title": "OTEL Enabled",
+          "description": "Enable OpenTelemetry instrumentation.",
+          "default": "true"
+        },
+        "OTEL_EXPORTER_OTLP_ENDPOINT": {
+          "type": "string",
+          "title": "OTEL Exporter OTLP Endpoint",
+          "description": "OTLP collector endpoint.",
+          "default": "krateo-clickstack-otel-collector.clickhouse-system:4317"
+        },
+        "OTEL_SERVICE_NAME": {
+          "type": "string",
+          "title": "OTEL Service Name",
+          "description": "Service name reported to OpenTelemetry.",
+          "default": "snowplow"
+        },
+        "PREWARM_MODE": {
+          "type": "string",
+          "title": "Prewarm Mode",
+          "description": "L1 prewarm strategy: event-driven (default) or legacy.",
+          "default": "event-driven"
+        },
+        "PREWARM_WORKERS": {
+          "type": "string",
+          "title": "Prewarm Workers",
+          "description": "Worker-pool parallelism for event-driven prewarm.",
+          "default": "4"
+        },
+        "PREWARM_QUEUE": {
+          "type": "string",
+          "title": "Prewarm Queue",
+          "description": "Bound on in-flight prewarm backlog.",
+          "default": "2048"
+        }
+      },
+      "default": {
+        "DEBUG": "false",
+        "BLIZZARD": "false",
+        "SKIP": "false",
+        "JQ_MODULES_PATH": "/jq-modules",
+        "GOMEMLIMIT": "7GiB",
+        "GOGC": "50",
+        "CACHE_ENABLED": "true",
+        "OTEL_ENABLED": "true",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "krateo-clickstack-otel-collector.clickhouse-system:4317",
+        "OTEL_SERVICE_NAME": "snowplow",
+        "PREWARM_MODE": "event-driven",
+        "PREWARM_WORKERS": "4",
+        "PREWARM_QUEUE": "2048"
+      }
+    },
+    "jwtSignKeySecretName": {
+      "type": "string",
+      "title": "JWT Sign Key Secret Name",
+      "description": "Name of the Secret holding the JWT signing key.",
+      "default": "jwt-sign-key"
+    },
+    "snowplow-crd": {
+      "type": "object",
+      "title": "Snowplow CRD Subchart",
+      "description": "Values forwarded to the snowplow-crd dependency subchart.",
+      "additionalProperties": true,
+      "default": {}
+    }
+  }
+}
