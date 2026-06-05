@@ -223,7 +223,15 @@ image:
   # changes; ALL 5 implemented (Change #2 stronger than spec).
   # Dual mini-gate ACK: architect ACK-FOR-TAG per-commit; PM
   # ACK-FOR-TAG 96% confidence.
-  tag: "0.30.248"
+  #
+  # 0.30.249 / Task #250 Block 2a — observability-only shim:
+  # exposes snowplow_rbac_publish_seq on /debug/vars (sourced from
+  # cache.RBACGen() at internal/cache/rbac_snapshot.go:251). Probe A
+  # of the Phase 6 #250 bench S8/S9 inner gate. ~15 LOC new + 9 LOC
+  # main.go register-call. NO behavior change — pure read-side
+  # observability extension. NO env-var changes, NO CRD-template
+  # changes; pure image.tag bump.
+  tag: "0.30.249"
 
 imagePullSecrets: []
 nameOverride: ""
