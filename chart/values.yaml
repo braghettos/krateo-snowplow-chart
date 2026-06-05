@@ -187,7 +187,43 @@ image:
   # engine is inert and the hook has no consumer (transparent
   # fallback to cold-path-on-first-call). Per
   # project_single_cache_flag_direction.
-  tag: "0.30.247"
+  #
+  # 0.30.248 (Ship 2 Stage 2.5 — engine ctx decoupling, Fix v2).
+  # CUSTOMER-FACING SHIP. Closes the empirically-falsified CONSUMER-
+  # side gap left open by 0.30.247. Emit-side wiring from 0.30.247
+  # (AddNavigatedGVR + notifyGVRDiscoveredForReprewarm +
+  # scopeKindGVRDiscovered) STAYS — it correctly fires the hook and
+  # enqueues the scope. What was broken: the engine worker that
+  # should DRAIN that queue died the instant the boot scope
+  # completed, because its context was the boot-seed goroutine's
+  # bounded ctx. Trace v2 root cause at phase1_walk.go:352
+  # (StartPrewarmEngine(pctx, ...)) + outer `defer seedCancel()`
+  # cancelling pctx at boot-done. The post-boot
+  # scopeKindGVRDiscovered enqueues piled in e.pending with no
+  # consumer (run-20260605-082433: 0 prewarm.engine.gvr_discovered.start
+  # events across 23,643 log lines despite the hook firing).
+  #
+  # FIX v2 (~262 prod + ~472 test = 734 LOC across 3 commits):
+  # (1) prewarm_engine.go runWorker derives a per-scope
+  #     context.WithTimeout(ctx, prewarmScopeTimeout(s)) anchored
+  #     on a long-lived process ctx; the worker outlives boot-done.
+  # (2) phase1_walk.go adds engineProcessCtx + SetEngineProcessContext
+  #     + resolveEngineProcessCtx with one-time slog.Error fallback.
+  # (3) main.go wires dispatchers.SetEngineProcessContext(cacheCtx)
+  #     next to RegisterRefreshHandlers (process-lifetime sequence).
+  # (4) prewarm_engine_metrics.go new file — 4 expvar surfaces
+  #     (enqueued/processed/yield/pending_depth).
+  #
+  # NO env-var changes, NO CRD-template changes, NO chart-structure
+  # changes — pure image.tag bump. Helm template diff against 0.30.247
+  # = single image-line delta.
+  #
+  # GOVERNANCE: Trace v2 architect verdict (fresh, formed hypothesis
+  # before reading Trace v1) + PM gate ACK 90% with 5 required
+  # changes; ALL 5 implemented (Change #2 stronger than spec).
+  # Dual mini-gate ACK: architect ACK-FOR-TAG per-commit; PM
+  # ACK-FOR-TAG 96% confidence.
+  tag: "0.30.248"
 
 imagePullSecrets: []
 nameOverride: ""
