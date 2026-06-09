@@ -36,7 +36,7 @@ image:
   # MUST be >= 0.25.293 for this chart revision -- earlier images do
   # NOT honour PROBE_PORT and will silently leave port 8082 closed,
   # turning every kubelet probe into a connection-refused -> restart.
-  tag: "0.25.301"
+  tag: "0.25.302"   # multi-arch (amd64+arm64) — runs on kind on Apple Silicon
 
 imagePullSecrets: []
 nameOverride: ""
@@ -184,6 +184,10 @@ volumes:
     configMap:
       name: snowplow-cache-warmup
       defaultMode: 420
+      # Optional: cache warmup is a startup optimization. When the blueprint/portal
+      # has not provided this ConfigMap, the pod must still start (WarmL1 simply
+      # skips). Without this, the pod is stuck ContainerCreating on FailedMount.
+      optional: true
   # Frontend config.json from the portal's frontend-config-vars ConfigMap.
   # Used by WarmL1FromEntryPoints to discover INIT/ROUTES_LOADER entry
   # points for targeted L1 warmup. Optional so pods start cleanly when
