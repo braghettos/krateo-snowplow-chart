@@ -254,7 +254,37 @@ image:
   #
   # Refs: docs/task-267-s6-admin-2-widget-silent-skip-trace-2026-06-09.md
   # Closes: #268
-  tag: "0.30.250"
+  #
+  # 0.30.251 / Task #272 — bundled S8 cj_widget_error_count=15 fix.
+  # Two independent fixes shipped under one image tag (Diego ratified
+  # 2026-06-09 ~16:30 CEST):
+  #   1. bench S8 Role (e2e/bench/bench/phases.py): adds the
+  #      `templates.krateo.io: restactions: [get,list]` rule. cj's
+  #      per-card Panel `spec.apiRef` resolves against a RESTAction
+  #      CR; pre-v5 the bench Role was missing this grant, so cj's
+  #      apiserver GET returned a real 403.
+  #   2. snowplow apiref error-type preservation (internal/resolvers/
+  #      widgets/apiref/resolve.go): the apiref boundary previously
+  #      stripped the upstream status code with
+  #      `fmt.Errorf("%s", res.Err.Message)`. The dispatcher's
+  #      `errors.As(err, *apierrors.StatusError)` check then failed
+  #      and every apiref-resolve error landed in HTTP 500. Fix
+  #      reconstructs an `*apierrors.StatusError` from the code
+  #      preserved on `res.Err` and wraps with `%w` so the dispatcher
+  #      recovers the apiserver's real code (403 / 404 / etc.) on
+  #      the wire.
+  #
+  # NO env-var changes, NO CRD-template changes, NO chart-structure
+  # changes — pure image.tag bump.
+  #
+  # Falsifier: new slog WARN `apiref.resolve.error_preserved` emits
+  # once per apiref error with upstream_code + upstream_reason +
+  # gvr_group/resource + name/namespace; visible in pod logs at
+  # default DEBUG=false verbosity for post-deploy smoke.
+  #
+  # Refs: docs/task-262-s8-cj-tablist-trace-2026-06-09.md
+  # Closes: #262, #272
+  tag: "0.30.251"
 
 imagePullSecrets: []
 nameOverride: ""
