@@ -606,6 +606,11 @@
       "type": "object",
       "title": "Global values",
       "description": "Helm global values (injected when used as a subchart)."
+    },
+    "snowplow-crd": {
+      "type": "object",
+      "description": "Values passthrough to the bundled snowplow-crd subchart.",
+      "additionalProperties": true
     }
   }
 }
