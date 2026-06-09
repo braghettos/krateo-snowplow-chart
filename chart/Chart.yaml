@@ -22,8 +22,7 @@ version: CHART_VERSION
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
 appVersion: APP_VERSION
-
-dependencies:
-  - name: snowplow-crd
-    version: CHART_VERSION
-    repository: file://../crd-chart
+# NOTE: the snowplow-crd chart is intentionally NOT bundled here. Per the golden
+# rule, CRDs live in a dedicated chart deployed as its own Composition (snowplow-crd).
+# Bundling it makes the app release try to own the CRDs and collide with the
+# snowplow-crd release ("cannot be imported into the current release").
