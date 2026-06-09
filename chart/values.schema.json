@@ -1,0 +1,611 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "title": "Snowplow",
+  "description": "Krateo PlatformOps Snowplow blueprint \u2014 full-coverage schema (chart 0.30.249).",
+  "additionalProperties": false,
+  "properties": {
+    "replicaCount": {
+      "type": "integer",
+      "title": "Replica Count",
+      "description": "Number of snowplow pod replicas."
+    },
+    "progressDeadlineSeconds": {
+      "type": "integer",
+      "title": "Progress Deadline Seconds",
+      "description": "Deployment progressDeadlineSeconds; safety window for cold informer sync."
+    },
+    "image": {
+      "type": "object",
+      "title": "Image",
+      "description": "Container image settings.",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "title": "Repository",
+          "description": "Container image repository."
+        },
+        "pullPolicy": {
+          "type": "string",
+          "title": "Pull Policy",
+          "description": "Image pull policy.",
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ]
+        },
+        "tag": {
+          "type": "string",
+          "title": "Tag",
+          "description": "Pinned snowplow app image tag (decoupled from chart version)."
+        }
+      }
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "title": "Image Pull Secrets",
+      "description": "References to secrets for pulling images from private registries.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the image pull secret."
+          }
+        }
+      }
+    },
+    "nameOverride": {
+      "type": "string",
+      "title": "Name Override",
+      "description": "Override the chart name used in resource names."
+    },
+    "fullnameOverride": {
+      "type": "string",
+      "title": "Fullname Override",
+      "description": "Override the fully qualified resource name."
+    },
+    "serviceAccount": {
+      "type": "object",
+      "title": "Service Account",
+      "description": "Service account configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "title": "Create",
+          "description": "Whether to create a service account."
+        },
+        "automount": {
+          "type": "boolean",
+          "title": "Automount",
+          "description": "Automatically mount the service account API token."
+        },
+        "annotations": {
+          "type": "object",
+          "title": "Annotations",
+          "description": "Annotations to add to the service account.",
+          "additionalProperties": true
+        },
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "Name of the service account to use; generated if empty and create is true."
+        }
+      }
+    },
+    "podAnnotations": {
+      "type": "object",
+      "title": "Pod Annotations",
+      "description": "Annotations to add to the pod.",
+      "additionalProperties": true
+    },
+    "podLabels": {
+      "type": "object",
+      "title": "Pod Labels",
+      "description": "Labels to add to the pod.",
+      "additionalProperties": true
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "title": "Pod Security Context",
+      "description": "Pod-level security context.",
+      "additionalProperties": true
+    },
+    "securityContext": {
+      "type": "object",
+      "title": "Security Context",
+      "description": "Container-level security context.",
+      "additionalProperties": true
+    },
+    "service": {
+      "type": "object",
+      "title": "Service",
+      "description": "Kubernetes Service configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "Type",
+          "description": "Service type.",
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer",
+            "ExternalName"
+          ]
+        },
+        "port": {
+          "type": "integer",
+          "title": "Port",
+          "description": "Service port exposing the main http listener."
+        }
+      }
+    },
+    "probePort": {
+      "type": "integer",
+      "title": "Probe Port",
+      "description": "Dedicated kubelet-probe listener port; 0 disables it and falls back to the main port."
+    },
+    "ingress": {
+      "type": "object",
+      "title": "Ingress",
+      "description": "Ingress configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enabled",
+          "description": "Enable creation of an Ingress resource."
+        },
+        "className": {
+          "type": "string",
+          "title": "Class Name",
+          "description": "IngressClass name."
+        },
+        "annotations": {
+          "type": "object",
+          "title": "Annotations",
+          "description": "Annotations to add to the Ingress.",
+          "additionalProperties": true
+        },
+        "hosts": {
+          "type": "array",
+          "title": "Hosts",
+          "description": "Ingress host rules.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "host": {
+                "type": "string",
+                "title": "Host",
+                "description": "Hostname for the rule."
+              },
+              "paths": {
+                "type": "array",
+                "title": "Paths",
+                "description": "Path rules for the host.",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "title": "Path",
+                      "description": "URL path."
+                    },
+                    "pathType": {
+                      "type": "string",
+                      "title": "Path Type",
+                      "description": "Kubernetes Ingress pathType."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tls": {
+          "type": "array",
+          "title": "TLS",
+          "description": "TLS configuration for the Ingress.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "title": "Resources",
+      "description": "Compute resource requests and limits.",
+      "additionalProperties": false,
+      "properties": {
+        "limits": {
+          "type": "object",
+          "title": "Limits",
+          "description": "Resource limits.",
+          "additionalProperties": true,
+          "properties": {
+            "cpu": {
+              "type": [
+                "string",
+                "integer"
+              ],
+              "title": "CPU",
+              "description": "CPU limit."
+            },
+            "memory": {
+              "type": "string",
+              "title": "Memory",
+              "description": "Memory limit."
+            }
+          }
+        },
+        "requests": {
+          "type": "object",
+          "title": "Requests",
+          "description": "Resource requests.",
+          "additionalProperties": true,
+          "properties": {
+            "cpu": {
+              "type": [
+                "string",
+                "integer"
+              ],
+              "title": "CPU",
+              "description": "CPU request."
+            },
+            "memory": {
+              "type": "string",
+              "title": "Memory",
+              "description": "Memory request."
+            }
+          }
+        }
+      }
+    },
+    "startupProbe": {
+      "type": "object",
+      "title": "Startup Probe",
+      "description": "Startup probe configuration (targets the dedicated probe port).",
+      "additionalProperties": true,
+      "properties": {
+        "httpGet": {
+          "type": "object",
+          "title": "HTTP Get",
+          "description": "HTTP GET action for the probe.",
+          "additionalProperties": true,
+          "properties": {
+            "path": {
+              "type": "string",
+              "title": "Path",
+              "description": "Path to probe."
+            },
+            "port": {
+              "type": [
+                "string",
+                "integer"
+              ],
+              "title": "Port",
+              "description": "Port (name or number) to probe."
+            }
+          }
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold",
+          "description": "Consecutive failures before giving up."
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period Seconds",
+          "description": "How often to perform the probe."
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout Seconds",
+          "description": "Probe timeout."
+        }
+      }
+    },
+    "livenessProbe": {
+      "type": "object",
+      "title": "Liveness Probe",
+      "description": "Liveness probe configuration (targets the dedicated probe port).",
+      "additionalProperties": true,
+      "properties": {
+        "httpGet": {
+          "type": "object",
+          "title": "HTTP Get",
+          "description": "HTTP GET action for the probe.",
+          "additionalProperties": true,
+          "properties": {
+            "path": {
+              "type": "string",
+              "title": "Path",
+              "description": "Path to probe."
+            },
+            "port": {
+              "type": [
+                "string",
+                "integer"
+              ],
+              "title": "Port",
+              "description": "Port (name or number) to probe."
+            }
+          }
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period Seconds",
+          "description": "How often to perform the probe."
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout Seconds",
+          "description": "Probe timeout."
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold",
+          "description": "Consecutive failures before restart."
+        }
+      }
+    },
+    "readinessProbe": {
+      "type": "object",
+      "title": "Readiness Probe",
+      "description": "Readiness probe configuration (targets the dedicated probe port).",
+      "additionalProperties": true,
+      "properties": {
+        "httpGet": {
+          "type": "object",
+          "title": "HTTP Get",
+          "description": "HTTP GET action for the probe.",
+          "additionalProperties": true,
+          "properties": {
+            "path": {
+              "type": "string",
+              "title": "Path",
+              "description": "Path to probe."
+            },
+            "port": {
+              "type": [
+                "string",
+                "integer"
+              ],
+              "title": "Port",
+              "description": "Port (name or number) to probe."
+            }
+          }
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period Seconds",
+          "description": "How often to perform the probe."
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout Seconds",
+          "description": "Probe timeout."
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold",
+          "description": "Consecutive failures before marking not ready."
+        }
+      }
+    },
+    "autoscaling": {
+      "type": "object",
+      "title": "Autoscaling",
+      "description": "HorizontalPodAutoscaler configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enabled",
+          "description": "Enable autoscaling via HPA."
+        },
+        "minReplicas": {
+          "type": "integer",
+          "title": "Min Replicas",
+          "description": "Minimum number of replicas."
+        },
+        "maxReplicas": {
+          "type": "integer",
+          "title": "Max Replicas",
+          "description": "Maximum number of replicas."
+        },
+        "targetCPUUtilizationPercentage": {
+          "type": "integer",
+          "title": "Target CPU Utilization Percentage",
+          "description": "Target average CPU utilization to scale on."
+        }
+      }
+    },
+    "args": {
+      "type": "array",
+      "title": "Args",
+      "description": "Command-line args for the snowplow container.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "volumes": {
+      "type": "array",
+      "title": "Volumes",
+      "description": "Additional pod volumes beyond the chart-managed jq-modules ConfigMap.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Volume name."
+          }
+        }
+      }
+    },
+    "volumeMounts": {
+      "type": "array",
+      "title": "Volume Mounts",
+      "description": "Additional container volume mounts.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the volume to mount."
+          },
+          "mountPath": {
+            "type": "string",
+            "title": "Mount Path",
+            "description": "Path at which to mount the volume."
+          },
+          "readOnly": {
+            "type": "boolean",
+            "title": "Read Only",
+            "description": "Mount the volume read-only."
+          }
+        }
+      }
+    },
+    "extraEnvFrom": {
+      "type": "array",
+      "title": "Extra Env From",
+      "description": "Additional envFrom entries appended to the chart-managed ConfigMap and jwt-sign-key Secret.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "initContainers": {
+      "type": "array",
+      "title": "Init Containers",
+      "description": "Init containers for the pod.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "nodeSelector": {
+      "type": "object",
+      "title": "Node Selector",
+      "description": "Node selector for pod scheduling.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "tolerations": {
+      "type": "array",
+      "title": "Tolerations",
+      "description": "Pod tolerations for scheduling onto tainted nodes.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "affinity": {
+      "type": "object",
+      "title": "Affinity",
+      "description": "Pod affinity/anti-affinity rules.",
+      "additionalProperties": true
+    },
+    "env": {
+      "type": "object",
+      "title": "Env",
+      "description": "Env vars rendered into the chart's snowplow ConfigMap and consumed via envFrom.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "properties": {
+        "DEBUG": {
+          "type": "string",
+          "title": "DEBUG",
+          "description": "Enable debug logging."
+        },
+        "BLIZZARD": {
+          "type": "string",
+          "title": "BLIZZARD",
+          "description": "Blizzard feature toggle."
+        },
+        "SKIP": {
+          "type": "string",
+          "title": "SKIP",
+          "description": "Skip feature toggle."
+        },
+        "JQ_MODULES_PATH": {
+          "type": "string",
+          "title": "JQ Modules Path",
+          "description": "Path where jq custom modules are mounted."
+        },
+        "GOMEMLIMIT": {
+          "type": "string",
+          "title": "GOMEMLIMIT",
+          "description": "Go soft memory limit; must be below the container memory limit."
+        },
+        "GOGC": {
+          "type": "string",
+          "title": "GOGC",
+          "description": "Go garbage collector target percentage."
+        },
+        "CACHE_ENABLED": {
+          "type": "string",
+          "title": "Cache Enabled",
+          "description": "Enable the in-process MemCache."
+        },
+        "OTEL_ENABLED": {
+          "type": "string",
+          "title": "OTEL Enabled",
+          "description": "Enable OpenTelemetry instrumentation."
+        },
+        "OTEL_EXPORTER_OTLP_ENDPOINT": {
+          "type": "string",
+          "title": "OTEL Exporter OTLP Endpoint",
+          "description": "OTLP collector endpoint."
+        },
+        "OTEL_SERVICE_NAME": {
+          "type": "string",
+          "title": "OTEL Service Name",
+          "description": "Service name reported to OpenTelemetry."
+        },
+        "PREWARM_MODE": {
+          "type": "string",
+          "title": "Prewarm Mode",
+          "description": "L1 prewarm strategy: event-driven (default) or legacy."
+        },
+        "PREWARM_WORKERS": {
+          "type": "string",
+          "title": "Prewarm Workers",
+          "description": "Worker-pool parallelism for event-driven prewarm."
+        },
+        "PREWARM_QUEUE": {
+          "type": "string",
+          "title": "Prewarm Queue",
+          "description": "Bound on in-flight prewarm backlog."
+        }
+      }
+    },
+    "jwtSignKeySecretName": {
+      "type": "string",
+      "title": "JWT Sign Key Secret Name",
+      "description": "Name of the Secret holding the JWT signing key."
+    },
+    "global": {
+      "type": "object",
+      "title": "Global values",
+      "description": "Helm global values (injected when used as a subchart)."
+    }
+  }
+}
