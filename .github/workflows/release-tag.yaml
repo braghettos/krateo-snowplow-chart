@@ -57,13 +57,8 @@ jobs:
           helm package ./crd-chart --destination ./build
           ls -la ./build
 
-      - name: Build chart dependencies from local crd-chart
-        run: |
-          # The main chart depends on snowplow-crd via file://../crd-chart
-          # helm dependency build resolves it by picking up the local .tgz
-          # produced above.
-          helm dependency build ./chart
-          ls -la ./chart/charts
+      # NOTE: the app chart no longer bundles crd-chart (golden rule — CRDs ship as
+      # the separate snowplow-crd chart below). No `helm dependency build` needed.
 
       - name: Helm lint (chart)
         run: helm lint ./chart
