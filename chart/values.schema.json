@@ -590,6 +590,11 @@
       "type": "string",
       "description": "Name of the Secret holding the JWT signing key.",
       "title": "JWT Sign Key Secret Name"
+    },
+    "global": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Helm global values (injected by the composition runtime)."
     }
   },
   "description": "Krateo PlatformOps Snowplow blueprint \u2014 full-coverage schema (chart 0.30.249)."
