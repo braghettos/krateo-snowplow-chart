@@ -277,20 +277,23 @@ image:
   # NO env-var changes, NO CRD-template changes, NO chart-structure
   # changes — pure image.tag bump.
   #
-  # 0.30.252 — Ship L1 (perf, trace task-288): EvaluateRBAC now skips
-  # the CRB/RB stable-sort when the caller discards matchedBindingUID
-  # (new EvaluateOptions.SkipBindingUID, default-false zero-value keeps
-  # the deterministic UID for the H.c-layered cache-key callers). At
-  # 50K scale sortCRBsStable over 17,929 same-subject CRBs was 43.74%
-  # of pod CPU per EvaluateRBAC × per-item refilter × perpetual
-  # refresher; the six per-item callers that discard the UID now skip
-  # it. Verdict byte-identical (concurrent -race evaltest gate).
+  # 0.30.253 — Ship L2 (perf, design task-291): snapshot-generation
+  # authz memo inside EvaluateRBAC. Post-L1 the evaluator was walk-bound
+  # at 37.33% of pod CPU (O(candidate-CRB) walk over the 17,929
+  # same-subject CRBs per call). A process-wide memo keyed on
+  # PublishSeq(Gen)+identity+canonical-groups-hash+(verb,group,resource,
+  # namespace,name)+SkipBindingUID collapses the repeated verdict to one
+  # keyed map read. Stale-across-republish is impossible: per-lookup gen
+  # guard against the live snap.PublishSeq + CAS whole-shard swap; errors
+  # uncached; cap 16384 empirically derived (B5), refuse-insert on breach.
   #
-  # Falsifier: re-run the task-288 20s CPU pprof under a 4x warm cj
-  # loop — sortCRBsStable cum 43.74%->~0%, EvaluateRBAC 63.21%-><20%.
+  # Falsifier: re-run the task-288 20s CPU pprof under a 4x warm cj loop
+  # — EvaluateRBAC cum 37.33%-><20% (projection 3-7%), gcBgMarkWorker
+  # must not rise; snowplow_authz_memo_* expvars show hit-rate >=0.85,
+  # refused=0, entries under cap.
   #
-  # Refs: docs/task-288-lane1-measurement-2026-06-10.md
-  tag: "0.30.252"
+  # Refs: docs/task-291-l2-authz-memo-design-2026-06-10.md
+  tag: "0.30.253"
 
 imagePullSecrets: []
 nameOverride: ""
