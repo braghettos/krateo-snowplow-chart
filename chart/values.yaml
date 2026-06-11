@@ -313,7 +313,24 @@ image:
   # OLD blanket "expected to fail" skip-string is GONE.
   #
   # Refs: docs/task-158-156-p9-prewarm-coverage-design-2026-06-11.md
-  tag: "0.30.255"
+  #
+  # 0.30.256 — Ship (#156 page-depth coverage). Build pins at braghettos
+  # snowplow 9335f03 (#156 ONLY; #313/68ebfd3 rides the branch but its tag is
+  # DEFERRED per PM sequencing until the 0.30.256 50K run is clean). P9-A audit:
+  # the 500-page prewarm cap silently truncated the walk at ~5% of the 50K
+  # widget population (units_planned ~1078 vs 47K CRs). Fix: phase1MaxApiRefPages
+  # 500 -> 20,000 as a pure LIVENESS BACKSTOP (operative terminator stays the
+  # blueprint .slice.continue==false — NO sampling cap); hitting it emits a loud
+  # Warn (phase1.walk.apiref_pagination.backstop_hit). P8 customer-priority yield
+  # at the per-page loop AND per drain job. New cache.Disabled()-gated coverage
+  # expvars: snowplow_phase1_units_planned / _units_seeded / _apiref_pages_total.
+  # NO env-var changes, NO CRD-template changes, NO chart-structure changes —
+  # pure image.tag bump.
+  #
+  # Falsifier: warm pod /debug/vars — snowplow_phase1_units_planned > ~40K at the
+  # ~49K-comp cluster; ZERO phase1.walk.apiref_pagination.backstop_hit Warns in
+  # pod logs; #158 counters + sum invariant still hold; smoke /call 200 + content.
+  tag: "0.30.256"
 
 imagePullSecrets: []
 nameOverride: ""
