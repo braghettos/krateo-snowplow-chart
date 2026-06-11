@@ -288,14 +288,32 @@ image:
   # snowplow_authz_memo_deny_uncached_total. Decline log now carries the
   # failing stage name + error sample (observability).
   #
-  # Falsifier: warm pod — snowplow_authz_memo_deny_uncached_total > 0 and
-  # rising; raFullList declines ~0 (no escalation); memo hit-rate within a
-  # few % of 0.30.253 (CPU win preserved). Full content falsifier (admin
-  # compositions-list cell ~11 MB, forbidden ~130, declines ~16) lands in
-  # the scored Phase 6 50K run on 0.30.254.
+  # 0.30.255 — Ship (fix #158 + audit quick-wins): two dual-reviewed
+  # snowplow commits (braghettos 14ef7e0 + 0211919). #158 — every
+  # seedCohort error was logged as "expected narrow RBAC" and dropped, yet
+  # seedCohort only ever returns non-nil for OPERATIONAL failures (ctx
+  # timeout/cancel/panic) — the genuine 403 was string-flattened to empty
+  # before the call site, self-concealing the 24-of-35 silently-unseeded
+  # cohorts. Fix: classifySeedErr splits 403/401->deny (Info +
+  # snowplow_phase1_seed_rbac_deny_total) vs ctx/5xx/default->operational
+  # (Warn + snowplow_phase1_seed_operational_fail_total + bounded
+  # re-enqueue) at BOTH call sites (legacy runPIPSeed + engine
+  # seedScopeYielding); old snowplow_phase1_bindingset_seed_failures_total
+  # retained as the back-compat sum. Audit quick-wins: %s->%w re-wraps
+  # (result map byte-identical), positiveIntFromEnv/int64BytesFromEnv WARN
+  # on parse-reject (#154 silent-truncation), callpath back-edge killed,
+  # go vet clean. NO env-var changes, NO CRD-template changes, NO
+  # chart-structure changes — pure image.tag bump.
   #
-  # Refs: docs/task-301-refresh-decline-trace-2026-06-10.md
-  tag: "0.30.254"
+  # Falsifier: warm pod /debug/vars — snowplow_phase1_seed_rbac_deny_total
+  # AND snowplow_phase1_seed_operational_fail_total present;
+  # bindingset_seed_failures_total == rbac_deny_total + operational_fail_total;
+  # pod logs carry phase1.seed.cohort.expected_deny /
+  # phase1.seed.cohort.operational_failure / prewarm.engine.seed.* and the
+  # OLD blanket "expected to fail" skip-string is GONE.
+  #
+  # Refs: docs/task-158-156-p9-prewarm-coverage-design-2026-06-11.md
+  tag: "0.30.255"
 
 imagePullSecrets: []
 nameOverride: ""
