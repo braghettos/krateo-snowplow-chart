@@ -330,7 +330,7 @@ image:
   # Falsifier: warm pod /debug/vars — snowplow_phase1_units_planned > ~40K at the
   # ~49K-comp cluster; ZERO phase1.walk.apiref_pagination.backstop_hit Warns in
   # pod logs; #158 counters + sum invariant still hold; smoke /call 200 + content.
-  tag: "0.30.260"
+  tag: "0.30.261"
 
 imagePullSecrets: []
 nameOverride: ""
