@@ -330,7 +330,7 @@ image:
   # Falsifier: warm pod /debug/vars — snowplow_phase1_units_planned > ~40K at the
   # ~49K-comp cluster; ZERO phase1.walk.apiref_pagination.backstop_hit Warns in
   # pod logs; #158 counters + sum invariant still hold; smoke /call 200 + content.
-  tag: "0.30.258"
+  tag: "0.30.260"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -489,5 +489,11 @@ env:
   # Override at install/upgrade time with --set env.CACHE_ENABLED=false to
   # fall back to the 0.30.3 (cache=off) behaviour.
   CACHE_ENABLED: "true"
+  # #318-R1a (snowplow 0.30.260): L1 refresher per-key re-resolve rate-floor.
+  # An L1 entry younger than this many seconds is deferred ("floored") by the
+  # dequeue-side floor gate instead of being re-resolved, collapsing the
+  # no-entry/churn re-resolve storm. "2" makes the snowplow code default
+  # (defaultRefresherRateFloorSeconds = 2) explicit; tune up to back off harder.
+  RESOLVED_CACHE_REFRESHER_RATE_FLOOR_SECONDS: "2"
 
 jwtSignKeySecretName: jwt-sign-key
