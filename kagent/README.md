@@ -1,4 +1,4 @@
-# `krateo-restaction-agent` — the RESTAction specialist (snowplow)
+# `krateo-snowplow-agent` — the snowplow component specialist
 
 A [kagent](https://kagent.dev) Agent that generates valid Krateo **RESTAction** CRDs (JQ filters,
 endpoint refs) and is the **dedicated expert on RESTActions**. Per the
@@ -12,5 +12,5 @@ it knows its component from this chart's `Chart.yaml` `sources`:
 It reads both via github MCP tools to ground answers in the real CRD schema + source. Reachable only
 through the `krateo-autopilot` orchestrator (registered via `extraAgents`).
 
-Published to `oci://ghcr.io/braghettos/krateo/krateo-restaction-agent` (pinned `0.1.0`). Shipped as
+Published to `oci://ghcr.io/braghettos/krateo/krateo-snowplow-agent` (pinned `0.1.0`). Shipped as
 an installer component gated on `features.observabilityAgents`.

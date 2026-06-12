@@ -1,10 +1,11 @@
 apiVersion: v2
-name: krateo-restaction-agent
+name: krateo-snowplow-agent
 description: >-
-  Federated specialist agent for Krateo RESTActions (served by snowplow). Generates valid
-  RESTAction CRDs (JQ filters, endpoint refs) and is the dedicated expert on the restaction domain
-  — it knows the snowplow codebase (braghettos/snowplow) and the chart that packages it
-  (braghettos/krateo-snowplow-chart). Registered on krateo-autopilot via the extraAgents hook.
+  Federated specialist agent for the Krateo snowplow component — the expert on snowplow's full role:
+  it implements RESTActions (the CRD) AND is the portal content/composition API that populates
+  widgets at runtime when a client (frontend SPA or curl) reads /call?resource=. Knows the snowplow
+  codebase (braghettos/snowplow) + its chart (braghettos/krateo-snowplow-chart). Registered on
+  krateo-autopilot via the extraAgents hook.
 type: application
 version: 0.1.0
 appVersion: 0.1.0
@@ -15,7 +16,7 @@ keywords:
   - platformops
   - kagent
   - ai-agent
-  - restaction
+  - snowplow
 sources:
   - https://github.com/braghettos/snowplow
   - https://github.com/braghettos/krateo-snowplow-chart

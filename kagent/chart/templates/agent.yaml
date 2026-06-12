@@ -1,30 +1,30 @@
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
-  name: krateo-restaction-agent
+  name: krateo-snowplow-agent
   namespace: {{ .Values.namespace }}
   labels:
-    app.kubernetes.io/name: krateo-restaction-agent
+    app.kubernetes.io/name: krateo-snowplow-agent
     app.kubernetes.io/part-of: krateo-snowplow
 spec:
   type: Declarative
   description: >-
-    Generates valid Krateo RESTAction CRDs (JQ filters, endpoint refs) and is the dedicated expert
-    on RESTActions — it knows the snowplow codebase (braghettos/snowplow) and the chart that
-    packages it (braghettos/krateo-snowplow-chart), declared in this chart's sources.
+    The Krateo snowplow expert: authors RESTAction CRDs and explains how snowplow composes/serves
+    portal content at runtime (the /call API that populates widgets when read by the frontend or
+    curl). Knows braghettos/snowplow + braghettos/krateo-snowplow-chart (this chart's sources).
   declarative:
     deployment:
       env:
-{{- include "krateo-restaction-agent.genaiEnv" . | nindent 8 }}
+{{- include "krateo-snowplow-agent.genaiEnv" . | nindent 8 }}
     modelConfig: {{ .Values.modelConfig }}
     stream: true
     promptTemplate:
       dataSources:
         - kind: ConfigMap
-          name: krateo-restaction-agent-prompts-{{ .Values.prompts.language }}
+          name: krateo-snowplow-agent-prompts-{{ .Values.prompts.language }}
           alias: prompts
     systemMessage: |
-      {{`{{include "prompts/restaction_agent"}}`}}
+      {{`{{include "prompts/snowplow_agent"}}`}}
     tools:
       - type: McpServer
         mcpServer:
@@ -35,6 +35,7 @@ spec:
             - k8s_get_resources
             - k8s_get_resource_yaml
             - k8s_apply_manifest
+            - k8s_check_service_connectivity
 {{- if .Values.github.enabled }}
       - type: McpServer
         mcpServer:
@@ -48,15 +49,21 @@ spec:
 {{- end }}
     a2aConfig:
       skills:
-        - id: generate-restaction
-          name: Generate RESTActions
-          description: >-
-            Create Krateo RESTAction CRs with JQ filters and endpoint refs, grounded in the
-            RESTAction CRD schema and the snowplow source.
+        - id: restactions
+          name: Author RESTActions
+          description: Create Krateo RESTAction CRs (JQ filters, endpoint refs), grounded in the CRD + source.
           tags: [krateo, restaction, snowplow, jq]
           examples:
             - Create a RESTAction that lists the pods in the cluster.
-            - Write a RESTAction that calls an external API and filters the response with JQ.
+        - id: portal-content
+          name: Portal content serving
+          description: >-
+            Explain/diagnose how snowplow composes and serves portal content (/call?resource=...) that
+            populates widgets at runtime when read by the frontend or curl.
+          tags: [krateo, snowplow, portal, content-api]
+          examples:
+            - The portal shows "widget does not exist" after login — why?
+            - How does the frontend get its navmenus/routes/pages from snowplow?
     deployment:
       resources:
 {{- toYaml .Values.resources | nindent 8 }}
