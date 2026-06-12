@@ -18,10 +18,14 @@ spec:
       {{- include "snowplow.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        # #325: roll the pod whenever the ConfigMap content changes so that a
+        # values-only `helm upgrade` (env change) no longer leaves the old pod
+        # running stale env (the #57 step-2 finding).
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "snowplow.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}

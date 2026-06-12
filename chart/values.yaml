@@ -336,7 +336,12 @@ image:
   # recovered values are ignored with a warn-once log (value 'false' logs
   # WARN). Entries above referencing PREWARM_ENABLED describe pre-0.30.261
   # semantics.
-  tag: "0.30.261"
+  #
+  # 0.30.262 (#323 + #325): per-GVR CRD-schema memo (snowplow); deployment
+  # pod-template gains checksum/config annotation — ConfigMap env changes now
+  # auto-roll the pod (previously a values-only upgrade left the old pod
+  # running stale env; the #57 step-2 finding).
+  tag: "0.30.262"
 
 imagePullSecrets: []
 nameOverride: ""
