@@ -15,7 +15,9 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: CHART_VERSION
+# Pinned (NOT the CHART_VERSION tag): the snowplow restactions CRD versions
+# independently of the snowplow app chart. The installer pins snowplow-crd 0.20.6.
+version: 0.20.6
 
 home: https://krateo.io
 icon: "https://github.com/krateoplatformops/krateo/blob/main/docs/media/logo.svg"
