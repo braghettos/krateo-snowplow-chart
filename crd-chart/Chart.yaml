@@ -19,8 +19,14 @@ type: application
 # independently of the snowplow app chart. The installer pins snowplow-crd 0.20.6.
 version: 0.20.6
 
-home: https://krateo.io
-icon: "https://github.com/krateoplatformops/krateo/blob/main/docs/media/logo.svg"
 
+appVersion: 0.20.6
+home: https://krateo.io
+icon: https://github.com/krateoplatformops/krateo/blob/main/docs/media/logo.svg
+keywords:
+  - krateo
+  - platformops
+  - snowplow
+  - crd
 sources:
-  - https://github.com/krateoplatformops/snowplow-chart
+  - https://github.com/braghettos/snowplow
