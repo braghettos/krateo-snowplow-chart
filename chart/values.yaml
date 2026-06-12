@@ -358,7 +358,28 @@ image:
   # Falsifier: warm pod /debug/vars surfaces ALL 7 new keys; fallbacks==0 and
   # builds 0-or-1 pre-traffic, the rest >=0; legacy expvar families still present
   # (no registration collision).
-  tag: "0.30.263"
+  #
+  # 0.30.264 (#330 + #333 + #328): PURE REFACTOR + docs + test hygiene — NO
+  # runtime-behavior change. #329/#330 (snowplow 5bc3e88..b1ab40e) is the
+  # api.Resolve extraction series: Resolve thinned to an orchestrator over a new
+  # resolveRun struct + constructor, with resolveStageEndpoint /
+  # collapseOrFanoutPlan / dispatchOneCall / recordItemError / runStage carved
+  # out of the former monolith. Zero behavior change is the shipped claim; parity
+  # is pinned by a frozen full-Resolve parity golden + R-2/C-2/slog-order tests
+  # (5bc3e88) that precede the extraction commits. #333 (cf3f86b) is Option
+  # C-prime — RBAC cluster doc-fence + 2 micro-fixes (the carve-replacement; no
+  # resolver semantics change). #328 (f5f9bb0) replaces wall-clock budgets with
+  # mechanism counters in the ValidateClusterListShape test guards. NO env-var
+  # changes, NO CRD-template changes, NO chart-structure changes — pure image.tag
+  # bump.
+  #
+  # Falsifier (PM condition 6): byte-identity of the served /call envelope across
+  # 0.30.263 -> 0.30.264 on an IDENTICAL populated cluster (49 bench-ns / 48,999
+  # compositions). Same-version determinism proven first (each target captured
+  # twice on 0.30.263, byte-identical), so raw sha256 is a valid cross-version
+  # oracle. Targets: admin compositions-list RA + dashboard piechart RA. Expected:
+  # before-sha == after-sha for BOTH (the extraction is invisible at the wire).
+  tag: "0.30.264"
 
 imagePullSecrets: []
 nameOverride: ""
