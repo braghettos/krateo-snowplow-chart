@@ -26,3 +26,12 @@ appVersion: APP_VERSION
 # rule, CRDs live in a dedicated chart deployed as its own Composition (snowplow-crd).
 # Bundling it makes the app release try to own the CRDs and collide with the
 # snowplow-crd release ("cannot be imported into the current release").
+home: https://krateo.io
+icon: https://github.com/krateoplatformops/krateo/blob/main/docs/media/logo.svg
+keywords:
+  - krateo
+  - platformops
+  - snowplow
+  - content-api
+sources:
+  - https://github.com/braghettos/snowplow
