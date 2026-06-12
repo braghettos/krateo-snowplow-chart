@@ -330,6 +330,12 @@ image:
   # Falsifier: warm pod /debug/vars — snowplow_phase1_units_planned > ~40K at the
   # ~49K-comp cluster; ZERO phase1.walk.apiref_pagination.backstop_hit Warns in
   # pod logs; #158 counters + sum invariant still hold; smoke /call 200 + content.
+  #
+  # #57 (0.30.261): PREWARM_ENABLED and RESOLVER_USE_INFORMER are RETIRED —
+  # both behaviors are implicit when CACHE_ENABLED=true; stale keys in
+  # recovered values are ignored with a warn-once log (value 'false' logs
+  # WARN). Entries above referencing PREWARM_ENABLED describe pre-0.30.261
+  # semantics.
   tag: "0.30.261"
 
 imagePullSecrets: []
