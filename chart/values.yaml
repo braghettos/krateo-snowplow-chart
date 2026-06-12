@@ -341,7 +341,24 @@ image:
   # pod-template gains checksum/config annotation — ConfigMap env changes now
   # auto-roll the pod (previously a values-only upgrade left the old pod
   # running stale env; the #57 step-2 finding).
-  tag: "0.30.262"
+  #
+  # 0.30.263 (#326 + #85): observability + graceful-shutdown. #326 adds the
+  # memo-family expvars — 7 new keys: snowplow_sa_discovery_builds_total,
+  # snowplow_sa_discovery_invalidations_total, snowplow_sa_discovery_fallbacks_total,
+  # snowplow_crd_schema_memo_hits_total, snowplow_crd_schema_memo_misses_total,
+  # snowplow_crd_schema_memo_stale_dropped_total, snowplow_crd_schema_memo_invalidations_total
+  # (gated by cache.Disabled() like the rest of the family). #85 makes the
+  # ResourceWatcher Stop() drain blocking on shutdown so the watcher goroutine
+  # is fully torn down before exit (shutdown-only path; no warm-path change).
+  # Test-debt fixes ride along: #293 deterministic cancel test, #312 stale-test
+  # fixes, #327 redundant Stop()+sleep teardown removed in 3 fixtures. NO env-var
+  # changes, NO CRD-template changes, NO chart-structure changes — pure image.tag
+  # bump.
+  #
+  # Falsifier: warm pod /debug/vars surfaces ALL 7 new keys; fallbacks==0 and
+  # builds 0-or-1 pre-traffic, the rest >=0; legacy expvar families still present
+  # (no registration collision).
+  tag: "0.30.263"
 
 imagePullSecrets: []
 nameOverride: ""
