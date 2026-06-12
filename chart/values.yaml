@@ -379,7 +379,40 @@ image:
   # twice on 0.30.263, byte-identical), so raw sha256 is a valid cross-version
   # oracle. Targets: admin compositions-list RA + dashboard piechart RA. Expected:
   # before-sha == after-sha for BOTH (the extraction is invisible at the wire).
-  tag: "0.30.264"
+  #
+  # 0.30.265 (#221 + #101 + #176 + #200 + comment/lever-pin wave): the
+  # backlog-clearance capstone. The window over 0.30.264 ships ONLY
+  # zero-behavior or additive-observability deltas plus non-shipping
+  # bench/test/CI work (no image content from the latter).
+  #   - #221: NEW expvar snowplow_prewarm_complete — an expvar.Func returning
+  #     map{done, elapsed_ms}, wired at the canonical cache.MarkPhase1Done flip
+  #     (the same atomic /readyz consults). Lazy at scrape time: pre-flip a
+  #     scrape reports {done:0, elapsed_ms:-1}; post-flip {done:1, elapsed_ms>0}
+  #     where elapsed_ms = process-start -> Phase1Done wall-clock. No per-/call
+  #     cost. Doubles as the live confirmation that MarkPhase1Done fired.
+  #   - #101: DEAD-expvar deletion — the 4 superseded counters
+  #     snowplow_phase1_seed_{restactions,widgets}_total and
+  #     snowplow_phase1_seed_{restactions,widgets}_by_cohort are removed (the
+  #     #158 classification family is their replacement). Now ABSENT at
+  #     /debug/vars.
+  #   - #176: scaffolding deletion (~300 LOC of dead/duplicated code paths).
+  #   - #200: defensive enum-default hardening (no behavior change on valid input).
+  #   - comment/lever-pin wave (#197/#333/#342/#343/#341): doc-only — #341 pins
+  #     the legacy seed path as the PREWARM_ENGINE_ENABLED back-out lever.
+  #   - non-shipping: bench/test/CI wave — the #202 release-tag action bumps
+  #     (checkout v5 / setup-go v6 / docker v4-v7 / codecov v5) and the NEW
+  #     scripts/check_resolveoptions_rc.sh CI gate (AST guard against the
+  #     0.30.230-class nil-rc defect). Neither lands in the image.
+  # NO env-var changes, NO CRD-template changes, NO chart-structure changes —
+  # pure image.tag bump. PREWARM_ENGINE_ENABLED=true (the engine selector) is a
+  # release-level override and is unaffected by this bump.
+  #
+  # Falsifier: warm pod /debug/vars — (a) snowplow_prewarm_complete present with
+  # done=1, elapsed_ms>0 after boot settle; (b) the 4 #101 keys ABSENT; (c) the 7
+  # memo-family keys (sa_discovery_{builds,invalidations,fallbacks}_total +
+  # crd_schema_memo_{hits,misses,stale_dropped,invalidations}_total) still
+  # present, fallbacks==0; (d) the failure-classification family still present.
+  tag: "0.30.265"
 
 imagePullSecrets: []
 nameOverride: ""
