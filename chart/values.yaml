@@ -412,7 +412,7 @@ image:
   # memo-family keys (sa_discovery_{builds,invalidations,fallbacks}_total +
   # crd_schema_memo_{hits,misses,stale_dropped,invalidations}_total) still
   # present, fallbacks==0; (d) the failure-classification family still present.
-  tag: "0.30.265"
+  tag: "" # empty → image tag self-tracks .Chart.AppVersion (CI-stamped from the release tag); was stale-pinned at 0.30.265 — #354
 
 imagePullSecrets: []
 nameOverride: ""
