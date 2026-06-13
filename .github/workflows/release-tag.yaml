@@ -1,10 +1,21 @@
 name: release-tag
 
 # Builds the snowplow chart as an OCI artifact and pushes it to
-# ghcr.io/braghettos. Triggered on semver tag pushes (e.g. 0.20.5). The
-# tag value is used as BOTH the chart version (for chart/Chart.yaml) and
-# the snowplow app version (appVersion in chart/Chart.yaml) — tag and
-# push a new semver each time you want a new chart release.
+# ghcr.io/braghettos. Triggered on semver tag pushes (e.g. 0.20.5), or
+# manually via workflow_dispatch.
+#
+# Version resolution (see the "Resolve versions" step below):
+#   * CHART_VERSION (chart/Chart.yaml `version`) = the chart release version.
+#       - workflow_dispatch: the `chart_version` input, else FAIL (a dispatch
+#         ref is a branch, not a version).
+#       - tag push: the triggering git tag (GITHUB_REF_NAME).
+#   * APP_VERSION (chart/Chart.yaml `appVersion`) = the snowplow application
+#     version this chart deploys. It is NO LONGER the chart tag. It is:
+#       - the `app_version` input if provided, ELSE
+#       - the latest STABLE semver tag of the snowplow APP repo
+#         (braghettos/snowplow), discovered via `git ls-remote` (-preN
+#         excluded). This decouples appVersion from the chart's own tag so a
+#         chart-only bump pins the correct already-released snowplow image.
 #
 # Ship S.1 (chart 0.30.243) collapsed the previous two-chart layout
 # (chart/ + crd-chart/) into a single chart. The RESTAction CRD now
@@ -25,6 +36,16 @@ on:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
       - "[0-9]+.[0-9]+.[0-9]+-pre[0-9]+"
+  workflow_dispatch:
+    inputs:
+      chart_version:
+        description: "Chart version; default = triggering tag"
+        required: false
+        type: string
+      app_version:
+        description: "Snowplow app version to pin; default = latest stable snowplow tag"
+        required: false
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -46,13 +67,75 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v5.0.0
 
-      - name: Resolve versions from tag
+      - name: Resolve versions
         id: versions
+        # CHART_VERSION = chart_version input, else the triggering git tag.
+        # APP_VERSION   = app_version input, else the latest STABLE semver tag
+        #                 of the snowplow APP repo (braghettos/snowplow) — NOT
+        #                 the chart tag.
+        #
+        # SNOWPLOW_REPO_TOKEN (a PAT with read scope on braghettos/snowplow) is
+        # REQUIRED only if that repo is PRIVATE: the workflow's default
+        # GITHUB_TOKEN is scoped to THIS repo and cannot read a sibling repo's
+        # refs. If braghettos/snowplow is public (it is today), the
+        # unauthenticated ls-remote below succeeds and the token is unused.
+        env:
+          # github.ref is authoritative for "is this ref a tag": on a tag push
+          # it is refs/tags/<tag>; on workflow_dispatch it is refs/heads/<branch>.
+          GITHUB_REF: ${{ github.ref }}
+          CHART_VERSION_INPUT: ${{ inputs.chart_version }}
+          APP_VERSION_INPUT: ${{ inputs.app_version }}
+          SNOWPLOW_REPO_OWNER: ${{ github.repository_owner }}
+          SNOWPLOW_REPO_TOKEN: ${{ secrets.SNOWPLOW_REPO_TOKEN }}
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          echo "chart=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "app=${TAG}"   >> "$GITHUB_OUTPUT"
-          echo "Tag ${TAG} -> chart=${TAG} app=${TAG}"
+          set -euo pipefail
+
+          # ---- CHART_VERSION -------------------------------------------------
+          if [ -n "${CHART_VERSION_INPUT}" ]; then
+            CHART_VERSION="${CHART_VERSION_INPUT}"
+            CHART_SOURCE="input(chart_version)"
+          elif [ "${GITHUB_REF}" != "${GITHUB_REF#refs/tags/}" ]; then
+            # Ref is a tag (refs/tags/<tag>); strip the prefix to get the version.
+            CHART_VERSION="${GITHUB_REF#refs/tags/}"
+            CHART_SOURCE="tag(${GITHUB_REF})"
+          else
+            echo "::error::No chart version: chart_version input is empty and the trigger ref '${GITHUB_REF}' is not a tag (refs/tags/...). On a workflow_dispatch run you MUST supply the chart_version input — a branch name is not a release version." >&2
+            exit 1
+          fi
+
+          # ---- APP_VERSION ---------------------------------------------------
+          if [ -n "${APP_VERSION_INPUT}" ]; then
+            APP_VERSION="${APP_VERSION_INPUT}"
+            APP_SOURCE="input(app_version)"
+          else
+            # Latest STABLE semver tag of the snowplow APP repo. -v:refname sorts
+            # newest-first; the refspec glob is NOT end-anchored so it also matches
+            # -preN tags — grep -v drops those so head picks the newest stable.
+            if [ -n "${SNOWPLOW_REPO_TOKEN}" ]; then
+              SNOWPLOW_REPO_URL="https://x-access-token:${SNOWPLOW_REPO_TOKEN}@github.com/${SNOWPLOW_REPO_OWNER}/snowplow.git"
+              APP_SOURCE="latest-app-tag(authenticated)"
+            else
+              SNOWPLOW_REPO_URL="https://github.com/${SNOWPLOW_REPO_OWNER}/snowplow.git"
+              APP_SOURCE="latest-app-tag(unauthenticated)"
+            fi
+            # `|| true` keeps an empty/grep-miss from tripping `set -o pipefail`
+            # so the explicit empty-check below owns the failure path with a
+            # clear message (instead of a silent set -e abort on grep rc=1).
+            APP_VERSION="$(git ls-remote --tags --refs --sort=-v:refname \
+              "${SNOWPLOW_REPO_URL}" \
+              '[0-9]*.[0-9]*.[0-9]*' \
+              | sed -E 's#.*refs/tags/##' | grep -vE '\-pre[0-9]+$' | head -n1 || true)"
+            if [ -z "${APP_VERSION}" ]; then
+              echo "::error::Could not resolve a stable snowplow app tag from ${SNOWPLOW_REPO_OWNER}/snowplow (ls-remote returned no stable semver tag). Pass the app_version input explicitly, or check repo access (set SNOWPLOW_REPO_TOKEN if the repo is private)." >&2
+              exit 1
+            fi
+          fi
+
+          # ---- Emit + log ----------------------------------------------------
+          echo "chart=${CHART_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "app=${APP_VERSION}"     >> "$GITHUB_OUTPUT"
+          echo "Resolved CHART_VERSION=${CHART_VERSION} (source: ${CHART_SOURCE})"
+          echo "Resolved APP_VERSION=${APP_VERSION} (source: ${APP_SOURCE})"
 
       - name: Substitute CHART_VERSION and APP_VERSION placeholders
         run: |
