@@ -19,4 +19,4 @@ keywords:
   - snowplow
 sources:
   - https://github.com/braghettos/snowplow
-  - https://github.com/braghettos/krateo-snowplow-chart
+  - https://github.com/braghettos/krateo-snowplow-chart/tree/SOURCE_REF
