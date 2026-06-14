@@ -27,16 +27,15 @@ progressDeadlineSeconds: 1200
 image:
   repository: ghcr.io/braghettos/snowplow
   pullPolicy: Always
-  # Pinned explicitly so the image build is decoupled from chart
-  # versioning. The chart's Chart.yaml appVersion placeholder is
-  # substituted by CI with the chart git tag, which is NOT the same
-  # as the snowplow app version. Always bump this in a values commit
-  # when you want a new snowplow app build to roll out.
+  # Empty -> defaults to the chart appVersion (= APP_VERSION = latest semver tag of the
+  # braghettos/snowplow app repo, resolved by release-oci). The app fork builds multi-arch
+  # (amd64+arm64) images tagged with that same app version, so the chart always deploys the
+  # image the app actually published. Override here only to pin a specific tag.
   #
-  # MUST be >= 0.25.293 for this chart revision -- earlier images do
-  # NOT honour PROBE_PORT and will silently leave port 8082 closed,
-  # turning every kubelet probe into a connection-refused -> restart.
-  tag: "0.25.302"   # multi-arch (amd64+arm64) — runs on kind on Apple Silicon
+  # NOTE: the deployed image MUST be >= 0.25.293 -- earlier images do NOT honour PROBE_PORT
+  # and will silently leave port 8082 closed, turning every kubelet probe into a
+  # connection-refused -> restart. The current app stream (1.0.x) is well past that.
+  tag: ""
 
 imagePullSecrets: []
 nameOverride: ""
