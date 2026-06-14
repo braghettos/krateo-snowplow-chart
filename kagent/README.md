@@ -6,7 +6,7 @@ endpoint refs) and is the **dedicated expert on RESTActions**. Per the
 it knows its component from this chart's `Chart.yaml` `sources`:
 
 - **codebase:** `github.com/braghettos/snowplow` (the service that executes RESTActions)
-- **chart that packages it:** `github.com/braghettos/krateo-snowplow-chart` (`crd-chart/` holds the
+- **chart that packages it:** `github.com/braghettos/krateo-snowplow-chart` (`crds-subchart/` holds the
   `RESTAction` CRD)
 
 It reads both via github MCP tools to ground answers in the real CRD schema + source. Reachable only

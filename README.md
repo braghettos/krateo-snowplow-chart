@@ -16,9 +16,9 @@ Part of the [krateo-installer](https://github.com/braghettos/krateo-installer) e
 | Path | Chart | OCI artifact | Versioning |
 |------|-------|--------------|-----------|
 | `chart/` | `snowplow` | `oci://ghcr.io/braghettos/krateo/snowplow` | tracks the git tag |
-| `crd-chart/` | `snowplow-crd` | `oci://ghcr.io/braghettos/krateo/snowplow-crd` | pinned `0.21.0` (independent of the app tag) |
+| `crds-subchart/` | `snowplow-crd` | `oci://ghcr.io/braghettos/krateo/snowplow-crd` | pinned `0.21.0` (independent of the app tag) |
 
-The `restactions` CRD versions independently of the snowplow app, so `crd-chart/Chart.yaml`
+The `restactions` CRD versions independently of the snowplow app, so `crds-subchart/Chart.yaml`
 carries a literal `version: 0.21.0` rather than the `CHART_VERSION` placeholder — the release
 workflow leaves it untouched.
 
@@ -38,7 +38,7 @@ helm template smoke chart
 
 ## Release
 
-Push a semver tag (`X.Y.Z`) — CI packages `chart/` and `crd-chart/` and publishes both to
+Push a semver tag (`X.Y.Z`) — CI packages `chart/` and `crds-subchart/` and publishes both to
 `oci://ghcr.io/braghettos/krateo`.
 
 ## Links
