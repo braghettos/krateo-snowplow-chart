@@ -1,5 +1,5 @@
 apiVersion: v2
-name: snowplow-crd
+name: krateo-snowplow-crd
 description: Krateo PlatformOps Snowplow CRDs
 
 # A chart can be either an 'application' or a 'library' chart.
