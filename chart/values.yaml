@@ -38,7 +38,7 @@ image:
   tag: ""
 
 imagePullSecrets: []
-nameOverride: ""
+nameOverride: "snowplow"
 fullnameOverride: ""
 
 serviceAccount:

@@ -1,5 +1,5 @@
 apiVersion: v2
-name: snowplow
+name: krateo-snowplow
 description: A Helm chart for Krateo PlatformOps Snowplow
 
 # A chart can be either an 'application' or a 'library' chart.
