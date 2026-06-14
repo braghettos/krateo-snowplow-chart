@@ -20,7 +20,6 @@ type: application
 version: 0.20.6
 
 
-appVersion: 0.20.6
 home: https://krateo.io
 icon: https://github.com/krateoplatformops/krateo/blob/main/docs/media/logo.svg
 keywords:
