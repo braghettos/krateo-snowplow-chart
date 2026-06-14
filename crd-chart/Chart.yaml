@@ -16,8 +16,12 @@ type: application
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
 # Pinned (NOT the CHART_VERSION tag): the snowplow restactions CRD versions
-# independently of the snowplow app chart. The installer pins snowplow-crd 0.20.6.
-version: 0.20.6
+# independently of the snowplow app chart. The installer pins this snowplow-crd version.
+# 0.21.0: schema refresh from the Ship S.1 / 0.30.205 generated CRD — adds the
+# UserAccessFilter.resourcesFrom field + the resource/resourcesFrom XOR validation that
+# the 1.0.x binary and the portal UAF RESTActions (compositions-list, etc.) require.
+# Minor bump (additive, backward-compatible schema surface).
+version: 0.21.0
 
 
 home: https://krateo.io
