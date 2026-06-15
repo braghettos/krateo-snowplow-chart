@@ -4,12 +4,6 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.3
-    # Protect against accidental deletion/replacement on `helm upgrade`/`helm uninstall`.
-    # The CRD is also owned by a standalone `snowplow-crd` Helm release on production
-    # clusters; without this annotation, upgrading the parent `snowplow` chart would
-    # re-template + reapply (or worse, delete) this CRD, garbage-collecting every
-    # RESTAction and CompositionDefinition cluster-wide.
-    helm.sh/resource-policy: keep
   name: restactions.templates.krateo.io
 spec:
   group: templates.krateo.io
