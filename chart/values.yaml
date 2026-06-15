@@ -32,9 +32,6 @@ image:
   # (amd64+arm64) images tagged with that same app version, so the chart always deploys the
   # image the app actually published. Override here only to pin a specific tag.
   #
-  # NOTE: the deployed image MUST be >= 0.25.293 -- earlier images do NOT honour PROBE_PORT
-  # and will silently leave port 8082 closed, turning every kubelet probe into a
-  # connection-refused -> restart. The current app stream (1.0.x) is well past that.
   tag: ""
 
 imagePullSecrets: []
@@ -57,20 +54,12 @@ service:
   type: LoadBalancer
   port: 8081
 
-# Q-PREWARM-R2 1.3 -- dedicated kubelet-probe port.
-#
-# When > 0 the snowplow binary opens a SECOND http.Server bound to
-# this port. That server has its own mux, its own goroutine, and
-# NO middleware (no otelhttp, no CORS, no recovery, no gzip). The
-# main :8081 server still serves /health and /ready as well, but
-# the kubelet's livenessProbe and readinessProbe are pointed at
-# this dedicated port so probes are NEVER blocked by request-side
-# pressure on the main accept loop or middleware chain.
-#
-# Set to 0 to disable the probe-only listener and fall back to
-# pre-R2 behaviour (kubelet hits :8081). Used for emergency
-# rollback without changing image tags.
-probePort: 8082
+# NOTE: the snowplow binary (1.0.x ship line) has NO dedicated probe
+# listener -- it serves /health + /readyz on the single `http` port
+# (PORT, 8081), so all three probes below target `http`. A prototype
+# probe-port split (PROBE_PORT/8082) lived only on the abandoned 0.25.x
+# line and was never implemented on the ship line; do not re-add
+# probePort/PROBE_PORT unless the binary grows a real second listener.
 
 ingress:
   enabled: false
@@ -107,58 +96,49 @@ resources:
     cpu: 2
     memory: 4Gi
 
-# Q-PREWARM-R2 (v0.25.293+) probe configuration.
+# Probe configuration.
 #
-# All three probes target the dedicated `probe` port (PROBE_PORT,
-# default 8082) instead of the main `http` port. The dedicated
-# server has 1s read/write timeouts, no middleware, and is on its
-# own goroutine -- so probes return in sub-millisecond steady state.
-#
-# The timeouts/thresholds below are EXPLICIT (not k8s defaults)
-# because the pre-R2 behaviour relied on k8s defaults
-# (timeoutSeconds: 1, failureThreshold: 3, periodSeconds: 10) which
-# left only a 30-second window before kubelet killed the pod. With
-# R2's probe isolation 1s is plenty for /health (it is a 5-byte
-# write), but we relax failureThreshold to 5 and timeoutSeconds to
-# 3 as defence-in-depth: even if the OS scheduler hiccups, a
-# transient miss should not restart the pod.
+# The snowplow binary serves /health and /readyz on the single `http`
+# port (PORT, 8081) -- there is no dedicated probe listener on the 1.0.x
+# ship line, so all three probes target `http`. The timeouts/thresholds
+# below are EXPLICIT (not k8s defaults): the k8s defaults
+# (timeoutSeconds 1, failureThreshold 3, periodSeconds 10) leave only a
+# 30-second window before kubelet kills the pod; we widen that as
+# defence-in-depth so a transient scheduler hiccup does not restart a
+# healthy pod.
 
-# Startup probe: gives the binary up to 6 minutes to reach the
-# point where the dedicated probe server is listening. In practice
-# it binds within ~50ms of process start (before the slow
-# informer-sync work runs in a background goroutine), so this is
-# almost entirely headroom for image pull / kube-scheduler latency.
+# Startup probe: gives the binary up to 6 minutes (36 x 10s) to start
+# serving /health. The http server (incl. /health) binds early, before
+# the background informer-sync / prewarm work, so this is mostly
+# headroom for image pull / kube-scheduler latency.
 startupProbe:
   httpGet:
     path: /health
-    port: probe
+    port: http
   failureThreshold: 36
   periodSeconds: 10
   timeoutSeconds: 3
 
-# Liveness probe: liveness only checks that the binary is alive
-# (Q-PREWARM-R2.2 -- /health is now a pure 5-byte write with zero
-# kube-API touches). failureThreshold: 5 + periodSeconds: 10 +
-# timeoutSeconds: 3 gives a 50-second window before kubelet
-# decides to restart, vs the 30-second window of k8s defaults that
-# triggered the death-spiral.
+# Liveness probe: checks only that the binary is alive (/health is a
+# cheap write with zero kube-API touches). failureThreshold 5 +
+# periodSeconds 10 + timeoutSeconds 3 = a 50-second window before
+# kubelet restarts, vs the 30-second window of k8s defaults.
 livenessProbe:
   httpGet:
     path: /health
-    port: probe
+    port: http
   periodSeconds: 10
   timeoutSeconds: 3
   failureThreshold: 5
 
-# Readiness probe: Q-PREWARM-R2.1 -- /ready now flips to 200 once
-# informers complete their initial LIST/WATCH sync (~10-30s at
-# 50K), independent of the multi-minute L1 prewarm loop. Pod
-# becomes Ready as soon as it can serve cold-L1 traffic; misses
-# fall through to the foreground singleflight resolve.
+# Readiness probe: /readyz flips to 200 once informers complete their
+# initial LIST/WATCH sync (gated on Phase1Done), independent of the
+# multi-minute L1 prewarm loop. The pod becomes Ready as soon as it can
+# serve cold-L1 traffic; misses fall through to a foreground resolve.
 readinessProbe:
   httpGet:
-    path: /ready
-    port: probe
+    path: /readyz
+    port: http
   periodSeconds: 5
   timeoutSeconds: 3
   failureThreshold: 3
