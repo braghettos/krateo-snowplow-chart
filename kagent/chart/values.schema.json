@@ -99,6 +99,19 @@
     "global": {
       "type": "object",
       "additionalProperties": true
+    },
+    "fetch": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "github MCP server the agent uses to read its component's codebase + chart.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "mcpServer": {
+          "type": "string"
+        }
+      }
     }
   }
 }

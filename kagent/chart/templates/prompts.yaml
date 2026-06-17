@@ -1,1 +1,4 @@
-{{ .Files.Get (printf "files/prompts-%s.yaml" .Values.prompts.language) }}
+{{- /* Stamp the deployed tag into the prompt's raw-doc URL: appVersion is set to the repo's
+       release tag at package time, and docs/llms.txt lives in this repo @ that tag — so the agent
+       fetches version-correct docs, tokenlessly, with no main-drift. */ -}}
+{{ .Files.Get (printf "files/prompts-%s.yaml" .Values.prompts.language) | replace "__DOC_TAG__" .Chart.AppVersion }}

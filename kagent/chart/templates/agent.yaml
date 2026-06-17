@@ -36,6 +36,16 @@ spec:
             - k8s_get_resource_yaml
             - k8s_apply_manifest
             - k8s_check_service_connectivity
+{{- if .Values.fetch.enabled }}
+      # Tokenless doc grounding: GET the version-pinned raw docs/llms.txt URL (public, no auth/token).
+      - type: McpServer
+        mcpServer:
+          name: {{ .Values.fetch.mcpServer }}
+          kind: MCPServer
+          apiGroup: kagent.dev
+          toolNames:
+            - fetch
+{{- end }}
 {{- if .Values.github.enabled }}
       - type: McpServer
         mcpServer:
