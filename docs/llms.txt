@@ -1,0 +1,66 @@
+# krateo-snowplow-chart (chart repo) — LLM doc index
+
+> krateo-snowplow-chart is the **deployment unit** for snowplow, the Krateo portal
+> content/composition API: the Helm chart that runs the snowplow workload, the dedicated CRD subchart
+> that publishes the `RESTAction` CRD, and the federated agent chart. This index is the agent entry
+> point to the **deployment, CRD and wiring** view. The **internals & runtime** view lives in the
+> code repo `braghettos/krateo-snowplow` `docs/`.
+
+## How to use this index (agents)
+
+You are reading the docs for a SPECIFIC deployed version. This is the **chart-repo half** of the
+component docs — deployment, CRDs, and wiring. Fetch every file below **at the CHART tag that matches
+the running build**, not `main`:
+
+- chart version = `CompositionDefinition.spec.chart.version` for snowplow → THIS repo's tag. Read
+  this repo's `docs/` at that tag.
+- The **internals view** (runtime behavior, the cache, prewarm, RBAC) is the OTHER half: read
+  `braghettos/krateo-snowplow` `docs/llms.txt` at the **image-version** tag = the snowplow
+  Deployment's container image tag (= this chart's `appVersion`).
+
+If something isn't in the docs, read the chart/CRD source at that same tag — don't guess, and don't
+trust `main` for a deployed older version. The agent chart (`kagent/chart`, `0.1.x`) versions
+independently of the snowplow component it speaks for — do not read its version as the component's.
+
+## Start here
+
+- [overview.md](overview.md): what snowplow is and **how it deploys** as a Krateo composition — the
+  three-chart layout (`chart/` app, `crds-subchart/` CRD, `kagent/chart` agent), the
+  CompositionDefinition (owned by the installer umbrella), and what the app chart renders
+  (Deployment, single http/8081 port, probes, ConfigMaps, RBAC, Service). Read first.
+
+## Deployment / CRD / wiring
+
+- [crds.md](crds.md): the CRD this repo owns — `RESTAction` (`templates.krateo.io/v1`): purpose +
+  curated key fields (`spec.api[]` stages, `dependsOn`, `endpointRef`, `userAccessFilter` + its CEL
+  rules, `spec.filter`). Note: there is **no `Widget` CRD here** — Widget types live in the code
+  repo's `apis/templates/`.
+- [wiring.md](wiring.md): the `values.yaml` surface (exposure/`service.type`, probes on the single
+  http/8081 port, `resources` + `GOMEMLIMIT`/`GOGC`, `CACHE_ENABLED`, env-via-ConfigMap+envFrom,
+  `extraEnvFrom`/`snowplow-api-override`), how the installer pins+wires it, dependencies, and the
+  real gotchas (GOMEMLIMIT-below-limit, required `jwt-sign-key` Secret, the only mounted volume is
+  the jq-modules ConfigMap, the stale `snowplow-cache-warmup` claim, frontend-side
+  `SNOWPLOW_API_BASE_URL`, never bundle the CRD).
+
+## Cross-repo (the internals & runtime half)
+
+- [ARCHITECTURE.md](https://github.com/braghettos/krateo-snowplow/blob/main/ARCHITECTURE.md): the
+  code repo's one-page map — the `/call` request path, the three-tier cache, prewarm, RBAC/UAF, the
+  north-star, the provisionality invariant. Versioned at the **image** tag.
+- [code-repo docs/llms.txt](https://github.com/braghettos/krateo-snowplow/blob/main/docs/llms.txt):
+  the code repo's index → `docs/architecture/` (request-lifecycle, caching, prewarm, rbac-uaf,
+  north-star, observability) and `howto/` (restactions, widgets, endpoints, install).
+
+## Reference
+
+- [README.md](../README.md): product overview, what each chart ships, how the installer consumes it.
+- `chart/` — the app Helm chart (templates + `values.yaml` + `values.schema.json`).
+- `crds-subchart/` — the `snowplow-crd` chart (the `RESTAction` CRD; source of truth for CRD fields).
+- `kagent/chart/` — the `krateo-snowplow-agent` chart (the federated specialist agent; versions
+  independently).
+
+## Notes
+
+Each doc set is versioned in its own repo: THIS repo's `docs/` at the **chart** tag, the code repo's
+`docs/` at the **image** tag. The `README.md` table may lag the actual pinned `crds-subchart`
+version — the chart (`crds-subchart/Chart.yaml`) is authoritative.
