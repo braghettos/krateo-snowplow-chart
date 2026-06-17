@@ -1,10 +1,10 @@
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
-  name: snowplow-agent
+  name: krateo-snowplow-agent
   namespace: {{ .Values.namespace }}
   labels:
-    app.kubernetes.io/name: snowplow-agent
+    app.kubernetes.io/name: krateo-snowplow-agent
     app.kubernetes.io/part-of: krateo-snowplow
 spec:
   type: Declarative
