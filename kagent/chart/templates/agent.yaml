@@ -11,7 +11,7 @@ spec:
   description: >-
     The Krateo snowplow expert: authors RESTAction CRDs and explains how snowplow composes/serves
     portal content at runtime (the /call API that populates widgets when read by the frontend or
-    curl). Knows braghettos/snowplow + braghettos/krateo-snowplow-chart (this chart's sources).
+    curl). Knows braghettos/krateo-snowplow + braghettos/krateo-snowplow-chart (this chart's sources).
   declarative:
     deployment:
       env:
