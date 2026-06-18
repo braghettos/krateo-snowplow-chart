@@ -7,7 +7,7 @@ description: >-
   codebase (braghettos/krateo-snowplow) + its chart (braghettos/krateo-snowplow-chart). Registered on
   krateo-autopilot via the extraAgents hook.
 type: application
-version: 0.1.6
+version: 0.1.7
 appVersion: CHART_VERSION
 home: https://krateo.io
 icon: https://github.com/krateoplatformops/krateo/blob/main/docs/media/logo.svg
