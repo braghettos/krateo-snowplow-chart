@@ -21,7 +21,7 @@ type: application
 # UserAccessFilter.resourcesFrom field + the resource/resourcesFrom XOR validation that
 # the 1.0.x binary and the portal UAF RESTActions (compositions-list, etc.) require.
 # Minor bump (additive, backward-compatible schema surface).
-version: 0.21.2
+version: 0.21.3
 
 
 home: https://krateo.io
