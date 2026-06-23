@@ -14,10 +14,11 @@ spec:
       {{- include "snowplow.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        checksum/configmap: {{ printf "%s%s" (include (print $.Template.BasePath "/configmap.yaml") .) (include (print $.Template.BasePath "/configmap.jq-custom-modules.yaml") .) | sha256sum }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "snowplow.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
