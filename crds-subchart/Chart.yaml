@@ -15,13 +15,12 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-# Pinned (NOT the CHART_VERSION tag): the snowplow restactions CRD versions
-# independently of the snowplow app chart. The installer pins this snowplow-crd version.
-# 0.21.0: schema refresh from the Ship S.1 / 0.30.205 generated CRD — adds the
-# UserAccessFilter.resourcesFrom field + the resource/resourcesFrom XOR validation that
-# the 1.0.x binary and the portal UAF RESTActions (compositions-list, etc.) require.
-# Minor bump (additive, backward-compatible schema surface).
-version: 0.21.3
+# Versioned with the SAME release tag as the main chart (krateo-snowplow): the CHART_VERSION
+# placeholder is substituted to the git tag by release-oci.yaml, so one chart-repo tag publishes
+# krateo-snowplow and krateo-snowplow-crd at the same version. The installer pins both at one
+# version. (Was independently pinned at 0.21.3 — restactions CRD, Ship S.1 / 0.30.205 schema with
+# UserAccessFilter.resourcesFrom + the resource/resourcesFrom XOR validation.)
+version: CHART_VERSION
 
 
 home: https://krateo.io
