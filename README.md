@@ -16,45 +16,57 @@ Part of the [krateo-installer](https://github.com/braghettos/krateo-installer) e
 | Path | Chart | OCI artifact | Versioning |
 |------|-------|--------------|-----------|
 | `chart/` | `snowplow` | `oci://ghcr.io/braghettos/krateo/snowplow` | tracks the git tag |
-| `crds-subchart/` | `snowplow-crd` | `oci://ghcr.io/braghettos/krateo/snowplow-crd` | independent `0.21.x` (currently `0.21.3`; not the app tag) |
+| `crds-subchart/` | `snowplow-crd` | `oci://ghcr.io/braghettos/krateo/snowplow-crd` | **lockstep** — tracks the git tag (since `1.0.29`) |
 
-The `restactions` CRD versions independently of the snowplow app, so `crds-subchart/Chart.yaml`
-carries a literal `version` (currently `0.21.3`) rather than the `CHART_VERSION` placeholder — the
-release workflow leaves it untouched and only bumps it when the CRD schema actually changes.
+Both charts are **lockstep-versioned**: `crds-subchart/Chart.yaml` carries the `CHART_VERSION`
+placeholder (since [e5f5de1](https://github.com/braghettos/krateo-snowplow-chart/commit/e5f5de1)),
+so `release-oci.yaml` substitutes it to the **same** git tag as `chart/` — one release tag
+publishes both charts at one version. The `restactions` CRD *template content* is refreshed only
+when the schema actually changes; the chart *version* always tracks the release tag regardless.
+(`1.0.28` and earlier published `snowplow-crd` at an independent literal `0.21.3`; `1.0.29`+ are
+lockstep — see the compatibility matrix below.)
 
 ## Compatibility matrix
 
-A release tag (`X.Y.Z`) packages **both** charts at once, but they are **versioned
-independently**:
+A release tag (`X.Y.Z`) packages **both** charts at once, and as of `1.0.29` they are
+**LOCKSTEP-versioned** — both carry the release tag as their chart version, released together
+on one tag:
 
 - **`snowplow`** (app) — chart version = the release tag; `appVersion` = the bundled snowplow image.
-- **`snowplow-crd`** (CRD) — its own literal `0.21.x` version, bumped **only** when the
-  `restactions` CRD schema changes (it is *not* the release tag).
+- **`snowplow-crd`** (CRD) — chart version = **the same release tag** (`CHART_VERSION`, since
+  [e5f5de1](https://github.com/braghettos/krateo-snowplow-chart/commit/e5f5de1)). The CRD chart is
+  re-published at every tag and the installer pins both charts at that one version. The
+  `restactions` CRD *schema* content is refreshed (CRD-template sync) when it actually changes;
+  the chart *version* always tracks the release tag, regardless of whether the schema moved.
 
-| Release tag | `snowplow` chart → image (`appVersion`) | `snowplow-crd` | CRD synced from | Highlights |
-|---|---|---|---|---|
-| `1.0.28` | snowplow `1.5.2` | `0.21.3` | snowplow `1.4.1` | Reverted the customer-resolve memory cap (the OOM fix is the apistage fold, on by default). |
-| `1.0.27` | `1.5.1` | `0.21.3` | `1.4.1` | Process-wide resolve memory cap — **superseded; use `1.0.28`**. |
-| `1.0.26` | `1.5.0` | `0.21.3` | `1.4.1` | `GET /rbac` inspect endpoint; `RESOLVED_CACHE_APISTAGE_ENABLED` folded under `CACHE_ENABLED`. |
-| `1.0.25` | `1.4.3` | `0.21.3` | `1.4.1` | Chart-only: configmap-checksum pod-template annotation (config changes roll pods). |
-| `1.0.24` | `1.4.3` | `0.21.3` | `1.4.1` | x509 fix: CA-bearing SA transport for bare group-discovery (`/apis/<g>/<v>`) api-steps. |
-| `1.0.23` | `1.4.2` | `0.21.3` | `1.4.1` | Discovery-storm fix (per-group dedup + memoised discovery). |
-| `1.0.22` | `1.4.0` / `1.4.1` | `0.21.3` | `1.4.1` | 1.4.x entry: in-process resolve + external-no-cache + `/call`-loopback retirement (`spec.api[].resolve`, default `true`). `1.4.1` = CRD keep-policy hotfix. |
+> **Caveat — versioning model changed at `1.0.29`.** `1.0.28` and earlier published
+> `snowplow-crd` at an **independent literal `0.21.3`** (bumped only on a schema change). `1.0.29`
+> and later are **lockstep**: `snowplow-crd` version == `snowplow` chart version == the release tag.
+
+| Release tag | `snowplow` chart → image (`appVersion`) | `snowplow-crd` | Highlights |
+|---|---|---|---|
+| `1.0.30` | snowplow `1.5.4` | `1.0.30` | Proactive composition-page L1 seed (`#47`, default-off) + `/rbac` in-cluster verb fix (collection→`list`, by-name→`get`). |
+| `1.0.29` | `1.5.3` | `1.0.29` | Stale-delete informer heal/re-touch (`#50`) + additive default-off OpenTelemetry (`#49`). **First lockstep release.** |
+| `1.0.28` | `1.5.2` | `0.21.3` *(independent)* | Reverted the customer-resolve memory cap (the OOM fix is the apistage fold, on by default). |
+| `1.0.27` | `1.5.1` | `0.21.3` *(independent)* | Process-wide resolve memory cap — **superseded; use `1.0.28`**. |
+| `1.0.26` | `1.5.0` | `0.21.3` *(independent)* | `GET /rbac` inspect endpoint; `RESOLVED_CACHE_APISTAGE_ENABLED` folded under `CACHE_ENABLED`. |
+| `1.0.25` | `1.4.3` | `0.21.3` *(independent)* | Chart-only: configmap-checksum pod-template annotation (config changes roll pods). |
+| `1.0.24` | `1.4.3` | `0.21.3` *(independent)* | x509 fix: CA-bearing SA transport for bare group-discovery (`/apis/<g>/<v>`) api-steps. |
+| `1.0.23` | `1.4.2` | `0.21.3` *(independent)* | Discovery-storm fix (per-group dedup + memoised discovery). |
+| `1.0.22` | `1.4.0` / `1.4.1` | `0.21.3` *(independent)* | 1.4.x entry: in-process resolve + external-no-cache + `/call`-loopback retirement (`spec.api[].resolve`, default `true`). `1.4.1` = CRD keep-policy hotfix. |
 
 ### CRD compatibility
 
-- **`snowplow-crd 0.21.3`** (synced from snowplow `1.4.1`) is the CRD for the **entire `1.4.x` →
-  `1.5.x` app line.** The `restactions` `v1` schema — `spec.api[]` (`path`, `verb`, `endpointRef`,
-  `dependsOn`, `continueOnError`, `userAccessFilter`), `spec.api[].resolve` (added with the 1.4.0
-  unified resolve), and `spec.filter` — has **not changed since `1.4.1`**; the `1.5.x` app releases
-  did not touch the CRD (their CRD-sync PRs were no-ops).
-- Earlier CRD syncs: `0.21.x` from snowplow `1.1.0` (#21) and `1.0.3` (#15) — for app versions
-  before `1.4.x`.
-- `restactions.templates.krateo.io` is served + storage version **`v1`** (single version) and
-  carries `helm.sh/resource-policy: keep`, so it survives `helm uninstall`.
+- The `restactions` `v1` schema — `spec.api[]` (`path`, `verb`, `endpointRef`, `dependsOn`,
+  `continueOnError`, `userAccessFilter`), `spec.api[].resolve` (added with the 1.4.0 unified
+  resolve), and `spec.filter` — has **not changed since `1.4.1`**. The app releases through
+  `1.5.4` did not touch the CRD content; only the CRD chart *version* moved (independent `0.21.3`
+  through `1.0.28`, then lockstep with the release tag from `1.0.29`).
+- `restactions.templates.krateo.io` is served + storage version **`v1`** (single version).
 
-Install **both** charts (the installer umbrella deploys each as its own Composition): `snowplow`
-at the release tag and `snowplow-crd` at `0.21.3`.
+Install **both** charts (the installer umbrella deploys each as its own Composition). For
+`1.0.29`+ both pin the **same** release tag; for `1.0.28` and earlier, `snowplow` at the release
+tag and `snowplow-crd` at `0.21.3`.
 
 ## How the installer consumes it
 
