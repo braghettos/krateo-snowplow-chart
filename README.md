@@ -16,11 +16,15 @@ Part of the [krateo-installer](https://github.com/braghettos/krateo-installer) e
 | Path | Chart | OCI artifact | Versioning |
 |------|-------|--------------|-----------|
 | `chart/` | `snowplow` | `oci://ghcr.io/braghettos/krateo/snowplow` | tracks the git tag |
-| `crds-subchart/` | `snowplow-crd` | `oci://ghcr.io/braghettos/krateo/snowplow-crd` | independent `0.21.x` (currently `0.21.3`; not the app tag) |
+| `crds-subchart/` | `snowplow-crd` | `oci://ghcr.io/braghettos/krateo/snowplow-crd` | **lockstep** — tracks the git tag (since `1.0.29`) |
 
-The `restactions` CRD versions independently of the snowplow app, so `crds-subchart/Chart.yaml`
-carries a literal `version` (currently `0.21.3`) rather than the `CHART_VERSION` placeholder — the
-release workflow leaves it untouched and only bumps it when the CRD schema actually changes.
+Both charts are **lockstep-versioned**: `crds-subchart/Chart.yaml` carries the `CHART_VERSION`
+placeholder (since [e5f5de1](https://github.com/braghettos/krateo-snowplow-chart/commit/e5f5de1)),
+so `release-oci.yaml` substitutes it to the **same** git tag as `chart/` — one release tag
+publishes both charts at one version. The `restactions` CRD *template content* is refreshed only
+when the schema actually changes; the chart *version* always tracks the release tag regardless.
+(`1.0.28` and earlier published `snowplow-crd` at an independent literal `0.21.3`; `1.0.29`+ are
+lockstep — see the compatibility matrix below.)
 
 ## Compatibility matrix
 
