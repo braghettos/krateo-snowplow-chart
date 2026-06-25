@@ -20,7 +20,7 @@ type: application
 # krateo-snowplow and krateo-snowplow-crd at the same version. The installer pins both at one
 # version. (Was independently pinned at 0.21.3 — restactions CRD, Ship S.1 / 0.30.205 schema with
 # UserAccessFilter.resourcesFrom + the resource/resourcesFrom XOR validation.)
-version: CHART_VERSION
+version: 0.0.1
 
 
 home: https://krateo.io
