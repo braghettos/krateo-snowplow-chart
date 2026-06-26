@@ -192,5 +192,25 @@ env:
   # Lower GOGC (default 100) trades ~1% CPU for tighter memory headroom.
   GOGC: "50"
   CACHE_ENABLED: "true"
+  # Structured single-line JSON logs in production. The default pretty
+  # (ANSI, multi-line, synchronous-stderr) handler measured ~7,355
+  # lines/sec on krateo-enterprise and is a steady-state CPU/I/O drag; set
+  # false so prod emits cheap one-line JSON. Pairs with snowplow Fix 2b
+  # (per-resolve success logs moved INFO->Debug).
+  PRETTY_LOG: "false"
+  # Phase 1 informer-sync barrier bounds (snowplow Fix 1b).
+  #   PHASE1_TIMEOUT_SECONDS  — absolute outer backstop for the whole
+  #     Phase 1 warmup. Lowered 900->180 so a pathological
+  #     never-converging boot cannot hold /readyz 503 for 15 min. With
+  #     Fix 1b in the image this is a backstop, not the primary bound.
+  #   PHASE1_SYNC_PASS_GRACE_SECONDS — per-pass grace for one
+  #     WaitForCacheSync pass; one stuck informer can stall at most this
+  #     long, not the whole budget.
+  #   PHASE1_SYNC_QUIESCENCE_SECONDS — registered-set stability window
+  #     after which the barrier returns "good enough", deferring any
+  #     still-unsynced informer to lazy-register fallthrough + refresher.
+  PHASE1_TIMEOUT_SECONDS: "180"
+  PHASE1_SYNC_PASS_GRACE_SECONDS: "45"
+  PHASE1_SYNC_QUIESCENCE_SECONDS: "10"
 
 jwtSignKeySecretName: jwt-sign-key
