@@ -552,6 +552,11 @@
           "description": "Enable the in-process MemCache.",
           "title": "Cache Enabled"
         },
+        "CATALOG_UNSERVABLE_TTL_SECONDS": {
+          "type": "string",
+          "description": "Bounded-staleness backstop (seconds) for apistage catalog entries stored while their GVR informer is not servable. When > 0, such an entry self-evicts within this short TTL instead of the standard resolved-cache TTL. 0 disables (entries use the standard TTL).",
+          "title": "Catalog Unservable TTL Seconds"
+        },
         "OTEL_ENABLED": {
           "type": "string",
           "description": "Enable OpenTelemetry instrumentation.",

@@ -212,5 +212,15 @@ env:
   PHASE1_TIMEOUT_SECONDS: "180"
   PHASE1_SYNC_PASS_GRACE_SECONDS: "45"
   PHASE1_SYNC_QUIESCENCE_SECONDS: "10"
+  # R1 Layer 2 bounded-staleness backstop (snowplow #36). When > 0, an
+  # apistage catalog entry stored while its GVR informer is NOT servable
+  # (registered-but-not-synced / watch-broken / unconfirmed) gets this SHORT
+  # per-entry TTL instead of the standard RESOLVED_CACHE_TTL_SECONDS (3600),
+  # so a degraded / not-fully-resolved entry self-corrects within the bound
+  # even if a dirty-mark or refresh-ordering gap is missed. The dirty-mark +
+  # refresher remain the primary invalidation; this is the safety-net floor.
+  # 300s = a degraded catalog entry is corrected within ~5 min worst case.
+  # Set to "0" to disable (entries then use the standard TTL exactly as before).
+  CATALOG_UNSERVABLE_TTL_SECONDS: "300"
 
 jwtSignKeySecretName: jwt-sign-key
