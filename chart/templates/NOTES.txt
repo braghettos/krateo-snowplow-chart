@@ -20,3 +20,17 @@
   echo "Visit http://127.0.0.1:8080 to use your application"
   kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
 {{- end }}
+{{- if .Values.seedAuthn.enabled }}
+
+2. #57 prewarm seed→authn loopback is ENABLED (seedAuthn.enabled=true).
+   PREREQUISITE: this release applied an authn ServiceAccount allowlist CR
+   (serviceaccount.authn.krateo.io/v1alpha1) in namespace
+   "{{ .Values.seedAuthn.authnNamespace }}". The Krateo authn operator AND its
+   `serviceaccount.authn.krateo.io` CRD MUST be installed first — otherwise this
+   install/upgrade FAILS on the unknown kind. The seed exchanges its projected
+   (audience={{ .Values.seedAuthn.tokenAudience }}) SA token at $URL_AUTHN for an
+   authn-issued JWT and appends it on self-loopback /call steps so the
+   composition-resources RAs prewarm. With seedAuthn.enabled=false (default) none
+   of these objects are applied and the seed degrades token-less (no warmth loss
+   on the live request path).
+{{- end }}

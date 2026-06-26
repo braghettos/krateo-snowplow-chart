@@ -601,6 +601,19 @@
       "description": "Name of the Secret holding the JWT signing key.",
       "title": "JWT Sign Key Secret Name"
     },
+    "seedAuthn": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "#57 prewarm seed→authn loopback-token artifacts (projected audience=authn SA token + authn ServiceAccount allowlist CR + seed-group ClusterRole/Binding). Default off; enabling requires the authn operator's serviceaccount.authn.krateo.io CRD.",
+      "title": "Seed Authn",
+      "properties": {
+        "enabled": { "type": "boolean", "title": "Enabled" },
+        "group": { "type": "string", "title": "Issued Group" },
+        "authnNamespace": { "type": "string", "title": "Authn Namespace" },
+        "tokenAudience": { "type": "string", "title": "Token Audience" },
+        "tokenPath": { "type": "string", "title": "Token Path" }
+      }
+    },
     "global": {
       "type": "object",
       "additionalProperties": true,
