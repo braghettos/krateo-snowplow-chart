@@ -567,20 +567,25 @@
           "description": "Service name reported to OpenTelemetry.",
           "title": "OTEL Service Name"
         },
-        "PREWARM_MODE": {
+        "PRETTY_LOG": {
           "type": "string",
-          "description": "L1 prewarm strategy: event-driven (default) or legacy.",
-          "title": "Prewarm Mode"
+          "description": "Emit ANSI multi-line pretty logs when true; one-line JSON when false. Set false in production.",
+          "title": "Pretty Log"
         },
-        "PREWARM_WORKERS": {
+        "PHASE1_TIMEOUT_SECONDS": {
           "type": "string",
-          "description": "Worker-pool parallelism for event-driven prewarm.",
-          "title": "Prewarm Workers"
+          "description": "Absolute outer backstop (seconds) for the whole Phase 1 warmup. With snowplow Fix 1b this is a backstop, not the primary bound.",
+          "title": "Phase 1 Timeout Seconds"
         },
-        "PREWARM_QUEUE": {
+        "PHASE1_SYNC_PASS_GRACE_SECONDS": {
           "type": "string",
-          "description": "Bound on in-flight prewarm backlog.",
-          "title": "Prewarm Queue"
+          "description": "Per-pass grace (seconds) for one informer WaitForCacheSync pass; one stuck informer can stall at most this long, not the whole Phase 1 budget.",
+          "title": "Phase 1 Sync Pass Grace Seconds"
+        },
+        "PHASE1_SYNC_QUIESCENCE_SECONDS": {
+          "type": "string",
+          "description": "Registered informer-set stability window (seconds) after which the Phase 1 barrier returns good-enough, deferring still-unsynced informers to lazy-register fallthrough and the refresher.",
+          "title": "Phase 1 Sync Quiescence Seconds"
         }
       },
       "description": "Env vars rendered into the chart's snowplow ConfigMap and consumed via envFrom.",
