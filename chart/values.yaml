@@ -222,5 +222,48 @@ env:
   # 300s = a degraded catalog entry is corrected within ~5 min worst case.
   # Set to "0" to disable (entries then use the standard TTL exactly as before).
   CATALOG_UNSERVABLE_TTL_SECONDS: "300"
+  # #57 — prewarm seed loopback auth. The seed exchanges its projected
+  # (audience=authn) ServiceAccount token at URL_AUTHN for an authn-issued JWT
+  # and appends it on a /call api-step whose resolved endpoint host EXACTLY
+  # equals URL_SELF (snowplow's own service) — so a nested loopback /call
+  # carries a bearer snowplow's own middleware accepts and the
+  # composition-resources RAs warm. URL_SELF anchors the self-loopback
+  # bearer-append arm (exact scheme+host+port match; empty disables the arm).
+  # SERVICEACCOUNT_TOKEN_PATH is the projected token mount (see seedAuthn below).
+  URL_AUTHN: "http://authn.krateo-system.svc.cluster.local:8082"
+  URL_SELF: "http://snowplow.krateo-system.svc.cluster.local:8081"
+  SERVICEACCOUNT_TOKEN_PATH: "/var/run/secrets/krateo.io/serviceaccount/token"
+
+# #57 seedAuthn — gates the prewarm seed→authn loopback-token deployment
+# artifacts (projected audience=authn SA token volume/mount + the authn
+# ServiceAccount allowlist CR + the seed-group ClusterRole/Binding). Default
+# OFF: the env above is harmless without the projected token (the seed
+# degrades token-less, pre-#57 behaviour).
+#
+# PREREQUISITE: enabling requires the Krateo authn operator's
+# `serviceaccount.authn.krateo.io` CRD present in the cluster (the allowlist CR
+# this chart applies is of that kind). With seedAuthn.enabled=true on a cluster
+# lacking that CRD the install FAILS on the unknown kind — keep it false unless
+# the authn operator is installed.
+#
+# DYNAMIC-GVR LIMITATION (documented, not solved): the seed-loopback ClusterRole
+# is a STATIC least-privilege grant over the KNOWN composition apiGroups
+# (composition.krateo.io + core.krateo.io). A blueprint declaring a CUSTOM
+# apiGroup is NOT covered → its nested seed resolve 403s → that composition
+# warms PARTIALLY at boot, but STILL SERVES CORRECTLY on the live /call (the
+# seed is best-effort warmth, not a correctness gate). Same dynamic-GVR problem
+# core-provider solves per-composition; mitigation = extend this grant or a
+# per-composition seed-grant. Bounded + documented.
+seedAuthn:
+  enabled: false
+  # The issued identity's group (authn ServiceAccount CR spec.groups → cert O=)
+  # that the ClusterRoleBinding grants the nested-RA reads to.
+  group: "krateo:snowplow-seed"
+  # The namespace the authn operator watches for ServiceAccount allowlist CRs.
+  authnNamespace: krateo-system
+  # Projected token audience — MUST be exactly "authn" (the authn operator's
+  # --serviceaccount-audience). Mount path == SERVICEACCOUNT_TOKEN_PATH above.
+  tokenAudience: authn
+  tokenPath: /var/run/secrets/krateo.io/serviceaccount/token
 
 jwtSignKeySecretName: jwt-sign-key
