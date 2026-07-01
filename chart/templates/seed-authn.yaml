@@ -1,6 +1,14 @@
-{{- if .Values.seedAuthn.enabled }}
 # #57 — prewarm seed → authn loopback-token authorization artifacts (static,
-# helm-applied; no controller). Three objects, gated by .Values.seedAuthn.enabled:
+# helm-applied; no controller). Three objects, ALWAYS rendered (the projected
+# authn JWT is a HARD platform requirement for snowplow, same as the CDC — no
+# opt-in flag; see the values.yaml seedAuthn comment + README hard-dependency):
+#
+# HARD DEPENDENCY: object (1) below is a serviceaccount.authn.krateo.io CR, so
+# THIS CHART FAILS TO INSTALL on a cluster lacking the krateo-authn-crd
+# (serviceaccount.authn.krateo.io CRD) + authn 0.24.0+. That is INTENDED — the
+# platform install pipeline sequences authn 0.24.0 + krateo-authn-crd BEFORE
+# snowplow (mirrors the CDC's identical hard-requirement). Install snowplow only
+# after authn is present, or the install fails fast by design.
 #
 #   1. the authn ServiceAccount ALLOWLIST CR (serviceaccount.authn.krateo.io) —
 #      its EXISTENCE is what authorises snowplow's SA to exchange its projected
@@ -97,4 +105,3 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: {{ include "snowplow.fullname" . }}-seed-loopback
-{{- end }}

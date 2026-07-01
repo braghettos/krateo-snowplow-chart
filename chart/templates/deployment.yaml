@@ -72,14 +72,13 @@ spec:
             - name: jq-modules
               mountPath: /jq-modules
               readOnly: true
-            {{- if .Values.seedAuthn.enabled }}
             # #57 — the prewarm seed's projected (audience=authn) SA token,
             # mounted at the directory of SERVICEACCOUNT_TOKEN_PATH so the
-            # authn.Client reads it fresh on each exchange.
+            # authn.Client reads it fresh on each exchange. UNCONDITIONAL — the
+            # authn JWT is a hard platform requirement (no seedAuthn.enabled gate).
             - name: seed-authn-token
               mountPath: {{ dir .Values.seedAuthn.tokenPath | quote }}
               readOnly: true
-            {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -87,11 +86,11 @@ spec:
         - name: jq-modules
           configMap:
             name: {{ include "snowplow.fullname" . }}-jq-custom-modules
-        {{- if .Values.seedAuthn.enabled }}
         # #57 — projected ServiceAccount token bound to the authn audience.
         # The audience MUST be exactly the authn operator's
         # --serviceaccount-audience ("authn"); the file lands at
-        # basename(SERVICEACCOUNT_TOKEN_PATH) inside the mount dir.
+        # basename(SERVICEACCOUNT_TOKEN_PATH) inside the mount dir. UNCONDITIONAL
+        # — the authn JWT is a hard platform requirement (no seedAuthn.enabled gate).
         - name: seed-authn-token
           projected:
             sources:
@@ -99,7 +98,6 @@ spec:
                   path: {{ base .Values.seedAuthn.tokenPath | quote }}
                   audience: {{ .Values.seedAuthn.tokenAudience | quote }}
                   expirationSeconds: 3600
-        {{- end }}
       {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
