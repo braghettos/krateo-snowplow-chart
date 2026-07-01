@@ -11,6 +11,36 @@ A reachable Snowplow is a hard prerequisite for a working portal, not just analy
 
 Part of the [krateo-installer](https://github.com/braghettos/krateo-installer) ecosystem.
 
+## Hard dependency: Krateo authn (>= 0.24.0) + its ServiceAccount CRD
+
+Snowplow requires the Krateo **authn** operator for its prewarm seed→loopback token
+exchange (`#57`) — the SAME hard requirement the Krateo composition-dynamic-controller
+declares. This is **unconditional** (there is no opt-in flag): the chart always renders a
+projected `audience: authn` ServiceAccount-token volume, the `AUTHN_*` env, a
+`serviceaccount.authn.krateo.io/ServiceAccount` allowlist CR (`snowplow-seed`), and a
+least-privilege warm-read `ClusterRole`+binding.
+
+Because the allowlist object is a `serviceaccount.authn.krateo.io` custom resource, **this
+chart FAILS TO INSTALL** on a cluster that does not already have, in order:
+
+1. the **`serviceaccount.authn.krateo.io` CRD** — chart
+   `oci://ghcr.io/braghettos/krateo/krateo-authn-crd` (installed as its own release), AND
+2. the **authn operator, image `>= 0.24.0`**, serving `POST /serviceaccount/login` (the
+   Kubernetes-`TokenReview`-backed SA-token → JWT exchange), AND
+3. the **authn RBAC** to run it — the authn ClusterRole must grant
+   `authentication.k8s.io/tokenreviews: create` and
+   `serviceaccount.authn.krateo.io/serviceaccounts: get,list,watch` (shipped by the
+   `krateo-authn` chart `>= 0.22.19`).
+
+**Rollout ordering (by design):** the platform install pipeline MUST sequence authn
+`0.24.0` + `krateo-authn-crd` **before** the snowplow chart. Installing snowplow first fails
+fast on the unknown kind — the intended fail-loud posture for a hard requirement, not a
+regression. The snowplow ServiceAccount (`snowplow`, namespace `krateo-system`) is placed in
+the authn allowlist by the `ServiceAccount` CR this chart renders; the issued identity is
+username `snowplow-seed`, group `krateo:snowplow-seed` (a dedicated, least-privilege group —
+see `values.yaml` `seedAuthn`). The self-loopback bearer-append matches snowplow's own Service
+host in either the short (`…svc`) or FQDN (`…svc.cluster.local`) DNS form.
+
 ## What it ships
 
 | Path | Chart | OCI artifact | Versioning |

@@ -234,17 +234,26 @@ env:
   URL_SELF: "http://snowplow.krateo-system.svc.cluster.local:8081"
   SERVICEACCOUNT_TOKEN_PATH: "/var/run/secrets/krateo.io/serviceaccount/token"
 
-# #57 seedAuthn — gates the prewarm seed→authn loopback-token deployment
-# artifacts (projected audience=authn SA token volume/mount + the authn
-# ServiceAccount allowlist CR + the seed-group ClusterRole/Binding). Default
-# OFF: the env above is harmless without the projected token (the seed
-# degrades token-less, pre-#57 behaviour).
+# #57 seedAuthn — the prewarm seed→authn loopback-token deployment artifacts
+# (projected audience=authn SA token volume/mount + the authn ServiceAccount
+# allowlist CR + the seed-group ClusterRole/Binding) are ALWAYS rendered. The
+# projected authn JWT is a HARD PLATFORM REQUIREMENT for snowplow (same as the
+# Krateo composition-dynamic-controller, which requires the identical JWT) —
+# there is NO opt-in flag.
 #
-# PREREQUISITE: enabling requires the Krateo authn operator's
-# `serviceaccount.authn.krateo.io` CRD present in the cluster (the allowlist CR
-# this chart applies is of that kind). With seedAuthn.enabled=true on a cluster
-# lacking that CRD the install FAILS on the unknown kind — keep it false unless
-# the authn operator is installed.
+# HARD DEPENDENCY (install-time): the allowlist object is a
+# `serviceaccount.authn.krateo.io` CR, so THIS CHART FAILS TO INSTALL on a
+# cluster lacking:
+#   - the `serviceaccount.authn.krateo.io` CRD (chart `krateo-authn-crd`), AND
+#   - the Krateo authn operator (image >= 0.24.0) serving POST
+#     /serviceaccount/login (the TokenReview-backed SA-token exchange), AND
+#   - the authn RBAC to run it (authentication.k8s.io/tokenreviews: create +
+#     serviceaccount.authn.krateo.io/serviceaccounts: get,list,watch).
+# ROLLOUT ORDERING (by design): the platform install pipeline MUST sequence
+# authn 0.24.0 + krateo-authn-crd BEFORE the snowplow chart, else the install
+# fails fast on the unknown kind. This is the intended fail-loud posture, not a
+# regression. (The snowplow SA `snowplow` in krateo-system is placed in the
+# allowlist by the ServiceAccount CR this chart renders.)
 #
 # DYNAMIC-GVR LIMITATION (documented, not solved): the seed-loopback ClusterRole
 # is a STATIC least-privilege grant over the KNOWN composition apiGroups
@@ -255,7 +264,6 @@ env:
 # core-provider solves per-composition; mitigation = extend this grant or a
 # per-composition seed-grant. Bounded + documented.
 seedAuthn:
-  enabled: false
   # The issued identity's group (authn ServiceAccount CR spec.groups → cert O=)
   # that the ClusterRoleBinding grants the nested-RA reads to.
   group: "krateo:snowplow-seed"
