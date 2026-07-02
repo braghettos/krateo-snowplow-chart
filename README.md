@@ -75,6 +75,8 @@ on one tag:
 
 | Release tag | `snowplow` chart → image (`appVersion`) | `snowplow-crd` | Highlights |
 |---|---|---|---|
+| `1.0.54` | `1.5.28` | `1.0.53` *(unchanged; no CRD change)* | Adaptive **aggregate** nested-resolve OOM bound (process-wide, GOMEMLIMIT − live-heap headroom) replacing the per-tree fixed-byte budget; customer `/call` has absolute admission priority over refresher/prewarm. Zero-knob (both `NESTED_RESOLVE_*` envs removed). |
+| `1.0.53` | `1.5.27` | `1.0.53` | `spec.api[].resolve` default flipped **true→false** (opt-in). CRD drops the `resolve` `default: true`. |
 | `1.0.30` | snowplow `1.5.4` | `1.0.30` | Proactive composition-page L1 seed (`#47`, default-off) + `/rbac` in-cluster verb fix (collection→`list`, by-name→`get`). |
 | `1.0.29` | `1.5.3` | `1.0.29` | Stale-delete informer heal/re-touch (`#50`) + additive default-off OpenTelemetry (`#49`). **First lockstep release.** |
 | `1.0.28` | `1.5.2` | `0.21.3` *(independent)* | Reverted the customer-resolve memory cap (the OOM fix is the apistage fold, on by default). |
