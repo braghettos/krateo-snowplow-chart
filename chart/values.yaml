@@ -15,10 +15,25 @@
 
 replicaCount: 1
 
-# /readyz flips on informer-sync only, typically <= 30s after pod start
-# regardless of L1 prewarm progress. The 1200s window is a safety net
-# for cold first-LIST at 50K compositions (informer initial LIST/WATCH
-# can take ~5 minutes under heavy API-server load).
+# Deployment strategy (C5, 1.5.29 prewarm-gated readiness). maxUnavailable:0 +
+# maxSurge:1 means on a rolling deploy the NEW pod prewarms behind its (now
+# prewarm-gated) /readyz while the OLD warm pod keeps serving ALL traffic until
+# the new pod is Ready+warm — no cold-serve / 503 gap on deploys. Ships WITH the
+# prewarm-complete gate (the gate alone does not prevent the deploy gap).
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+# /readyz now flips on PREWARM-COMPLETE (1.5.29 shape A): informer-sync AND the
+# per-cohort seed complete (or the pipGlobalTimeout backstop, ~8min). The pod is
+# withheld from Service endpoints until it can serve WARM. The 1200s window is
+# the Deployment-level rollout deadline and MUST exceed the total warmup
+# (informer initial LIST/WATCH at 50K, ~5min, + the seed backstop ~8min) — 1200s
+# (20min) covers min(PHASE1_TIMEOUT_SECONDS, pipGlobalTimeout)+sync comfortably.
+# (startupProbe targets /health, which binds EARLY — it does not gate prewarm;
+# the readinessProbe on /readyz observes the prewarm-gated 503→200.)
 progressDeadlineSeconds: 1200
 
 image:
@@ -128,10 +143,15 @@ livenessProbe:
   timeoutSeconds: 3
   failureThreshold: 5
 
-# Readiness probe: /readyz flips to 200 once informers complete their
-# initial LIST/WATCH sync (gated on Phase1Done), independent of the
-# multi-minute L1 prewarm loop. The pod becomes Ready as soon as it can
-# serve cold-L1 traffic; misses fall through to a foreground resolve.
+# Readiness probe: /readyz flips to 200 once Phase1Done is set. As of
+# 1.5.29 (shape A prewarm-gated readiness) Phase1Done is set AFTER the
+# per-cohort prewarm seed completes (or its pipGlobalTimeout backstop, ~8min),
+# NOT merely at informer-sync — so the pod is withheld from Service endpoints
+# until it can serve WARM (never routed cold into the compositions-page fan-out
+# under the aggregate OOM gate). Post-Ready L1 misses still fall through to a
+# foreground resolve (the #41 on-miss floor is intact). failureThreshold here
+# does NOT kill the pod (readiness only withholds from Endpoints); the rollout
+# bound is progressDeadlineSeconds above.
 readinessProbe:
   httpGet:
     path: /readyz

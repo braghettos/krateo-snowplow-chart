@@ -11,8 +11,13 @@
     },
     "progressDeadlineSeconds": {
       "type": "integer",
-      "description": "Deployment progressDeadlineSeconds; safety window for cold informer sync.",
+      "description": "Deployment progressDeadlineSeconds; safety window for cold informer sync + prewarm.",
       "title": "Progress Deadline Seconds"
+    },
+    "strategy": {
+      "type": "object",
+      "description": "Deployment update strategy (RollingUpdate maxSurge/maxUnavailable). maxUnavailable:0 keeps the old warm pod serving while the new pod prewarms behind its prewarm-gated /readyz.",
+      "title": "Deployment Strategy"
     },
     "image": {
       "type": "object",
