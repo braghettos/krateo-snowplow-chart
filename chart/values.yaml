@@ -220,16 +220,35 @@ env:
   PRETTY_LOG: "false"
   # Phase 1 informer-sync barrier bounds (snowplow Fix 1b).
   #   PHASE1_TIMEOUT_SECONDS  — absolute outer backstop for the whole
-  #     Phase 1 warmup. Lowered 900->180 so a pathological
-  #     never-converging boot cannot hold /readyz 503 for 15 min. With
-  #     Fix 1b in the image this is a backstop, not the primary bound.
+  #     Phase 1 warmup. #130 F3: RAISED 180->900 (the seed companion, TRACED).
+  #     The Step-7.6 cohort seed runs under
+  #     seedCtx = context.WithTimeout(phase1Ctx, pipGlobalTimeout=480s)
+  #     (phase1_walk.go:826) — it INHERITS the phase-1 deadline, it does NOT
+  #     get a fresh 480s. So the seed's effective budget =
+  #     min(PHASE1_TIMEOUT - preSeedElapsed, 480s). On the measured 1.7.6 boot
+  #     (PHASE1_TIMEOUT=300) the pre-seed phases (roots-walk ~150s +
+  #     content-prewarm ~11s + discovery re-walk ~100s) consumed ~251s BEFORE
+  #     the seed started (seed ranks emitted at t+251s), leaving the seed only
+  #     ~49s — it starved (sync_incomplete). To let the seed's designed 480s
+  #     budget actually bound it, PHASE1_TIMEOUT must be >= preSeedElapsed +
+  #     480 + margin. 900 gives 900-251=649s > 480 at THIS cluster, so the
+  #     seed's own 480s cap is the bound (the intended state); it also restores
+  #     the pre-2026-06 value. At 50K the pre-seed walk is larger, so re-measure
+  #     preSeedElapsed there and re-raise if 900-preSeed < 480.
+  #     TRADE (Option A, design §8, surfaced for the gate): the earlier
+  #     900->180 lowering guarded against a pathological never-converging boot
+  #     holding /readyz 503 up to 15 min. F3 re-accepts a longer worst-case
+  #     time-to-Ready for correct all-cohort first-nav coverage — BUT the
+  #     Lever-2 latch fires at min(all-reachable-cohorts-warm, backstop), so the
+  #     COMMON case still flips Ready as soon as the reachable cohorts warm; the
+  #     900s ceiling is only hit on a genuinely pathological boot.
   #   PHASE1_SYNC_PASS_GRACE_SECONDS — per-pass grace for one
   #     WaitForCacheSync pass; one stuck informer can stall at most this
   #     long, not the whole budget.
   #   PHASE1_SYNC_QUIESCENCE_SECONDS — registered-set stability window
   #     after which the barrier returns "good enough", deferring any
   #     still-unsynced informer to lazy-register fallthrough + refresher.
-  PHASE1_TIMEOUT_SECONDS: "180"
+  PHASE1_TIMEOUT_SECONDS: "900"
   PHASE1_SYNC_PASS_GRACE_SECONDS: "45"
   PHASE1_SYNC_QUIESCENCE_SECONDS: "10"
   # R1 Layer 2 bounded-staleness backstop (snowplow #36). When > 0, an
