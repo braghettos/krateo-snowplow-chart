@@ -16,6 +16,10 @@ modelConfig:
 prompts:
   language: eng
 
+# Human-in-the-loop gate on the mutating k8s tools (k8s_apply_manifest) the agent
+# uses to apply RESTAction CRs. true = pause for approval (safe); false = autonomous.
+hitlApproval: true
+
 # GeminiVertexAI via ADC (matches the autopilot). Wired by the installer from .Values.vertexAI.
 vertexAI:
   enabled: true
