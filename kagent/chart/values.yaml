@@ -4,7 +4,10 @@ namespace: krateo-system
 # autopilot ships: gemini-flash / gemini-pro). Set create=true to provision a DEDICATED ModelConfig
 # for THIS agent, so it can use a different model/provider independently of the other agents.
 modelConfig:
-  name: gemini-flash
+  # gemini-pro (not flash): this is an AUTHORING specialist — it composes RESTActions (+ widget
+  # apiRef wiring), the same authoring role that runs helm-agent + frontend-agent on pro. Authoring
+  # valid CRs + reading apiserver validation errors needs the stronger model.
+  name: gemini-pro
   create: false
   provider: GeminiVertexAI          # GeminiVertexAI (ADC) | Gemini (API key) | Anthropic | OpenAI
   model: gemini-2.5-flash
