@@ -33,11 +33,14 @@ spec:
           name: kagent-tool-server
           kind: RemoteMCPServer
           apiGroup: kagent.dev
-{{- if .Values.hitlApproval }}
-          # HITL: mutating tools pause for human approval (kagent requireApproval)
-          requireApproval:
-            - k8s_apply_manifest
-{{- end }}
+          # NO requireApproval here — consistent with the frontend-agent. This agent uses
+          # k8s_apply_manifest ONLY to server-DRY-RUN-VALIDATE the RESTActions it authors (it
+          # returns the CR; it does not persist it). The REAL write gate is downstream: the
+          # frontend's publishPage/publishBlueprint blast-radius confirm. Gating the dry-run here
+          # (the global .Values.hitlApproval default) surfaced a 2-level-deep nested confirmation
+          # when the frontend-agent delegates RA authoring, which the human rail only intermittently
+          # rendered → the authoring turn stalled. (hitlApproval stays an accepted value for
+          # installer/schema compat but no longer gates the authoring dry-run.)
           toolNames:
             - k8s_get_resources
             - k8s_get_resource_yaml
